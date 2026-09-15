@@ -2,6 +2,8 @@ import { signIn } from "@/lib/auth";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { Radio, LogIn } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
 
 async function login(convite: string | undefined, formData: FormData) {
   "use server";
@@ -30,11 +32,14 @@ export default async function LoginPage({
 
   return (
     <main className="m-auto w-full max-w-sm px-6">
-      <div className="mb-8 flex items-center gap-2">
-        <span className="flex h-9 w-9 items-center justify-center rounded-md bg-accent text-accent-foreground">
-          <Radio size={18} strokeWidth={2.5} />
-        </span>
-        <h1 className="text-xl font-semibold tracking-tight">Controle de Números</h1>
+      <div className="mb-8 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Radio size={18} strokeWidth={2.5} />
+          </span>
+          <h1 className="text-xl font-semibold tracking-tight">Controle de Números</h1>
+        </div>
+        <ThemeToggle />
       </div>
 
       {convite && (
@@ -77,13 +82,10 @@ export default async function LoginPage({
           <p className="text-sm text-destructive">E-mail ou senha inválidos.</p>
         )}
 
-        <button
-          type="submit"
-          className="mt-2 flex items-center justify-center gap-1.5 rounded-md bg-accent py-2 font-medium text-accent-foreground transition hover:brightness-110"
-        >
+        <Button type="submit" className="mt-2">
           <LogIn size={16} />
           Entrar
-        </button>
+        </Button>
       </form>
     </main>
   );

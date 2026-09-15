@@ -1,6 +1,7 @@
 import { UserCheck } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
 import { acceptInviteLoggedIn, signupAndAcceptInvite } from "./actions";
 
 const inputClass =
@@ -34,7 +35,7 @@ export default async function ConvitePage({
   return (
     <main className="m-auto w-full max-w-sm px-6">
       <div className="mb-8 flex items-center gap-2">
-        <span className="flex h-9 w-9 items-center justify-center rounded-md bg-accent text-accent-foreground">
+        <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <UserCheck size={18} strokeWidth={2.5} />
         </span>
         <div>
@@ -48,12 +49,9 @@ export default async function ConvitePage({
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         {alreadyLoggedInAsInvitee ? (
           <form action={acceptInviteLoggedIn.bind(null, token)}>
-            <button
-              type="submit"
-              className="w-full rounded-md bg-accent py-2 font-medium text-accent-foreground transition hover:brightness-110"
-            >
+            <Button type="submit" className="w-full">
               Aceitar convite
-            </button>
+            </Button>
           </form>
         ) : session?.user ? (
           <p className="text-sm text-muted-foreground">
@@ -75,12 +73,9 @@ export default async function ConvitePage({
                 className={inputClass}
               />
             </div>
-            <button
-              type="submit"
-              className="mt-2 rounded-md bg-accent py-2 font-medium text-accent-foreground transition hover:brightness-110"
-            >
+            <Button type="submit" className="mt-2">
               Criar conta e entrar
-            </button>
+            </Button>
           </form>
         )}
       </div>

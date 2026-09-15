@@ -49,7 +49,7 @@ export default async function AlertasPage({
                 className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2.5 text-sm shadow-sm"
               >
                 <div className="flex items-center gap-3">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-accent">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-primary">
                     <Icon size={14} />
                   </span>
                   <span className="font-medium text-foreground">
@@ -63,12 +63,12 @@ export default async function AlertasPage({
                   <span
                     className={
                       c.enabled
-                        ? "flex items-center gap-1 text-xs text-accent"
+                        ? "flex items-center gap-1 text-xs text-primary"
                         : "flex items-center gap-1 text-xs text-muted-foreground"
                     }
                   >
                     <span
-                      className={`h-1.5 w-1.5 rounded-full ${c.enabled ? "bg-accent" : "bg-muted-foreground"}`}
+                      className={`h-1.5 w-1.5 rounded-full ${c.enabled ? "bg-primary" : "bg-muted-foreground"}`}
                     />
                     {c.enabled ? "ativo" : "inativo"}
                   </span>
@@ -103,7 +103,7 @@ export default async function AlertasPage({
               <span>
                 {l.phoneNumber.label} → {KIND_LABELS[l.channel.kind] ?? l.channel.kind}
               </span>
-              <span className={l.ok ? "text-accent" : "text-destructive"}>
+              <span className={l.ok ? "text-primary" : "text-destructive"}>
                 {l.ok ? "ok" : l.error ?? "falhou"}
               </span>
               <span className="font-mono text-xs text-muted-foreground">

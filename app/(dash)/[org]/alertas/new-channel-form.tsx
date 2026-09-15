@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { createChannel } from "./actions";
 
 type Kind = "EMAIL" | "WEBHOOK" | "WHATSAPP";
@@ -61,13 +62,10 @@ export function NewChannelForm({ orgSlug }: { orgSlug: string }) {
         )}
       </div>
 
-      <button
-        type="submit"
-        className="flex w-fit items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition hover:brightness-110"
-      >
+      <Button type="submit" className="w-fit">
         <Plus size={15} />
         Adicionar canal
-      </button>
+      </Button>
     </form>
   );
 }

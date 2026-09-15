@@ -1,18 +1,22 @@
 "use client";
 
 import { useTransition } from "react";
+import { Button } from "@/components/ui/button";
 import { removeMember } from "./actions";
 
 export function RemoveButton({ orgSlug, membershipId }: { orgSlug: string; membershipId: string }) {
   const [pending, startTransition] = useTransition();
 
   return (
-    <button
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
       disabled={pending}
       onClick={() => startTransition(() => removeMember(orgSlug, membershipId))}
-      className="rounded-md border border-border px-2 py-1 text-xs text-destructive transition hover:border-destructive disabled:opacity-50"
+      className="text-destructive hover:border-destructive hover:bg-destructive/10"
     >
       Remover
-    </button>
+    </Button>
   );
 }

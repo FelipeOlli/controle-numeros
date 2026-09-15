@@ -2,7 +2,7 @@ import { CheckCircle2, AlertTriangle, XCircle, Ban, CircleDashed } from "lucide-
 import type { LucideIcon } from "lucide-react";
 
 const COLORS: Record<string, string> = {
-  GREEN: "bg-accent/15 text-accent border-accent/30",
+  GREEN: "bg-primary/15 text-primary border-primary/30",
   YELLOW: "bg-warning/15 text-warning border-warning/30",
   RED: "bg-destructive/15 text-destructive border-destructive/30",
   BANNED: "bg-muted text-muted-foreground border-border",

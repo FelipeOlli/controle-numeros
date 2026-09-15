@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus, Inbox } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireOrg } from "@/lib/tenant";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./status-badge";
 import { createNumber } from "./actions";
 
@@ -65,7 +66,7 @@ export default async function NumerosPage({
           <Link
             key={n.id}
             href={`/${orgSlug}/numeros/${n.id}`}
-            className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-md"
+            className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
           >
             <div className="flex items-start justify-between gap-2">
               <span className="font-medium text-foreground">{n.label}</span>
@@ -110,13 +111,10 @@ export default async function NumerosPage({
               ))}
             </select>
           </div>
-          <button
-            type="submit"
-            className="flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition hover:brightness-110"
-          >
+          <Button type="submit">
             <Plus size={16} />
             Adicionar número
-          </button>
+          </Button>
         </form>
       )}
     </div>

@@ -1,6 +1,7 @@
 import { UserPlus, Clock } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireOrg } from "@/lib/tenant";
+import { Button } from "@/components/ui/button";
 import { inviteMember } from "./actions";
 import { RemoveButton } from "./remove-button";
 
@@ -79,13 +80,10 @@ export default async function EquipePage({
                 <option value="ADMIN">Admin</option>
               </select>
             </div>
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition hover:brightness-110"
-            >
+            <Button type="submit">
               <UserPlus size={15} />
               Enviar convite
-            </button>
+            </Button>
           </form>
         </section>
       )}
@@ -93,7 +91,7 @@ export default async function EquipePage({
       {invites.length > 0 && (
         <section>
           <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-            <Clock size={15} className="text-accent" />
+            <Clock size={15} className="text-primary" />
             Convites pendentes
           </h2>
           <ul className="flex flex-col gap-2">

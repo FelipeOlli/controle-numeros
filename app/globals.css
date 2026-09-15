@@ -1,19 +1,62 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
+  --background: #f8f7fb;
+  --foreground: #18181b;
+
+  --card: #ffffff;
+  --card-foreground: #18181b;
+
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+
+  --primary: #16a34a;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f1f0f5;
+  --secondary-foreground: #18181b;
+
+  --muted: #f1f0f5;
+  --muted-foreground: #6b7280;
+
+  --accent: #f1f0f5;
+  --accent-foreground: #18181b;
+
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --border: #e5e3ee;
+  --input: #e5e3ee;
+  --ring: #16a34a;
+}
+
+.dark {
   --background: #0f172a;
   --foreground: #f8fafc;
 
   --card: #1b2336;
   --card-foreground: #f8fafc;
 
+  --popover: #1b2336;
+  --popover-foreground: #f8fafc;
+
+  --primary: #22c55e;
+  --primary-foreground: #052e16;
+
+  --secondary: #1e293b;
+  --secondary-foreground: #f8fafc;
+
   --muted: #1e293b;
   --muted-foreground: #94a3b8;
 
-  --border: #334155;
-
-  --accent: #22c55e;
-  --accent-foreground: #052e16;
+  --accent: #1e293b;
+  --accent-foreground: #f8fafc;
 
   --warning: #f59e0b;
   --warning-foreground: #451a03;
@@ -21,6 +64,8 @@
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
 
+  --border: #334155;
+  --input: #334155;
   --ring: #22c55e;
 }
 
@@ -29,22 +74,32 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
   --color-ring: var(--ring);
   --font-sans: var(--font-fira-sans);
   --font-mono: var(--font-fira-code);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

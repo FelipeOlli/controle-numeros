@@ -3,6 +3,7 @@ import { ArrowLeft, ClipboardCheck, ShieldAlert, History, Save } from "lucide-re
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireOrg } from "@/lib/tenant";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "../status-badge";
 import { createCheck } from "./actions";
 import { HealthChart } from "./health-chart";
@@ -64,7 +65,7 @@ export default async function NumberDetailPage({
 
       <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-          <ClipboardCheck size={16} className="text-accent" />
+          <ClipboardCheck size={16} className="text-primary" />
           Registrar check manual
         </h2>
         <form
@@ -99,19 +100,16 @@ export default async function NumberDetailPage({
             <label className="text-xs font-medium text-muted-foreground">Observação</label>
             <input name="observation" className={`w-full ${inputClass}`} />
           </div>
-          <button
-            type="submit"
-            className="flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition hover:brightness-110"
-          >
+          <Button type="submit">
             <Save size={15} />
             Salvar check
-          </button>
+          </Button>
         </form>
       </section>
 
       <section>
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-          <ShieldAlert size={16} className="text-accent" />
+          <ShieldAlert size={16} className="text-primary" />
           Incidentes
         </h2>
         {incidents.length === 0 ? (
@@ -137,7 +135,7 @@ export default async function NumberDetailPage({
 
       <section>
         <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-          <History size={16} className="text-accent" />
+          <History size={16} className="text-primary" />
           Histórico de checks
         </h2>
         <ul className="flex flex-col gap-2">
