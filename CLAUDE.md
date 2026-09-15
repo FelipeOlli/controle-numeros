@@ -18,8 +18,12 @@ Tailwind v4. Deploy: Docker + EasyPanel na Hetzner.
   gravando `HealthCheck` com `source: API` — não deve exigir migração de schema.
 
 ## Sessões recentes
-- 2026-09-15: scaffold inicial do projeto (Next.js + Tailwind), package renomeado para
-  `controle-numeros`. Próximo passo: schema Prisma + docker-compose com Postgres.
+- 2026-09-15: projeto completo (auth multi-tenant, números, checks, alertas, equipe,
+  worker) commitado e no ar em github.com/FelipeOlli/controle-numeros (branch master).
+  Dockerfile testado só via `npm run build` local — sem Docker instalado nesta máquina,
+  build de imagem em si não foi validado. Falta: criar Postgres + App + Worker no
+  EasyPanel de destino (fora das 3 instâncias que o MCP alcança) e rodar o seed em
+  produção. Guia completo em README.md.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
