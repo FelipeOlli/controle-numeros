@@ -15,6 +15,9 @@ RUN npm ci --legacy-peer-deps
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# DATABASE_URL real só é necessário em runtime; aqui é só pra
+# `prisma generate`/`next build` não travarem validando o config.
+ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
 RUN npx prisma generate
 RUN npm run build
 
