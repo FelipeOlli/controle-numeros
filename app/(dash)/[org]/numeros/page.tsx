@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Plus, Inbox } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireOrg } from "@/lib/tenant";
 import { StatusBadge } from "./status-badge";
@@ -11,6 +12,9 @@ const PROVIDER_LABELS: Record<string, string> = {
   EVOLUTION: "Evolution API",
   ZAPI: "Z-API",
 };
+
+const inputClass =
+  "rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring";
 
 export default async function NumerosPage({
   params,
@@ -41,12 +45,19 @@ export default async function NumerosPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Números</h1>
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">Números</h1>
+        <p className="text-sm text-muted-foreground">
+          {numbers.length} número{numbers.length === 1 ? "" : "s"} monitorado
+          {numbers.length === 1 ? "" : "s"}
+        </p>
       </div>
 
       {numbers.length === 0 && (
-        <p className="text-neutral-400">Nenhum número cadastrado ainda.</p>
+        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border py-16 text-muted-foreground">
+          <Inbox size={28} />
+          <p className="text-sm">Nenhum número cadastrado ainda.</p>
+        </div>
       )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -54,16 +65,18 @@ export default async function NumerosPage({
           <Link
             key={n.id}
             href={`/${orgSlug}/numeros/${n.id}`}
-            className="flex flex-col gap-2 rounded-lg border border-neutral-800 bg-neutral-900 p-4 hover:border-neutral-700"
+            className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-md"
           >
-            <div className="flex items-center justify-between">
-              <span className="font-medium">{n.label}</span>
+            <div className="flex items-start justify-between gap-2">
+              <span className="font-medium text-foreground">{n.label}</span>
               <StatusBadge status={n.currentStatus} />
             </div>
-            <span className="text-sm text-neutral-400">{n.e164}</span>
-            <div className="flex items-center justify-between text-xs text-neutral-500">
-              <span>{PROVIDER_LABELS[n.provider] ?? n.provider}</span>
-              <span>score {n.currentScore}</span>
+            <span className="font-mono text-sm text-muted-foreground">{n.e164}</span>
+            <div className="flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
+              <span className="rounded-full bg-muted px-2 py-0.5">
+                {PROVIDER_LABELS[n.provider] ?? n.provider}
+              </span>
+              <span className="font-mono">score {n.currentScore}</span>
             </div>
           </Link>
         ))}
@@ -72,31 +85,24 @@ export default async function NumerosPage({
       {canManage && (
         <form
           action={createNumber.bind(null, orgSlug)}
-          className="flex flex-wrap items-end gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4"
+          className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4 shadow-sm"
         >
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-neutral-400">Nome/label</label>
-            <input
-              name="label"
-              required
-              className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-400"
-            />
+            <label className="text-xs font-medium text-muted-foreground">Nome/label</label>
+            <input name="label" required className={inputClass} />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-neutral-400">Número (E.164)</label>
+            <label className="text-xs font-medium text-muted-foreground">Número (E.164)</label>
             <input
               name="e164"
               placeholder="+5511999999999"
               required
-              className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-400"
+              className={`font-mono ${inputClass}`}
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-neutral-400">Origem</label>
-            <select
-              name="provider"
-              className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-400"
-            >
+            <label className="text-xs font-medium text-muted-foreground">Origem</label>
+            <select name="provider" className={inputClass}>
               {Object.entries(PROVIDER_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
@@ -106,8 +112,9 @@ export default async function NumerosPage({
           </div>
           <button
             type="submit"
-            className="rounded-md bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-white"
+            className="flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition hover:brightness-110"
           >
+            <Plus size={16} />
             Adicionar número
           </button>
         </form>

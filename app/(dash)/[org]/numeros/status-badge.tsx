@@ -1,9 +1,20 @@
+import { CheckCircle2, AlertTriangle, XCircle, Ban, CircleDashed } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
 const COLORS: Record<string, string> = {
-  GREEN: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  YELLOW: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  RED: "bg-red-500/15 text-red-400 border-red-500/30",
-  BANNED: "bg-neutral-700/40 text-neutral-300 border-neutral-600",
-  UNKNOWN: "bg-neutral-800 text-neutral-400 border-neutral-700",
+  GREEN: "bg-accent/15 text-accent border-accent/30",
+  YELLOW: "bg-warning/15 text-warning border-warning/30",
+  RED: "bg-destructive/15 text-destructive border-destructive/30",
+  BANNED: "bg-muted text-muted-foreground border-border",
+  UNKNOWN: "bg-muted text-muted-foreground border-border",
+};
+
+const ICONS: Record<string, LucideIcon> = {
+  GREEN: CheckCircle2,
+  YELLOW: AlertTriangle,
+  RED: XCircle,
+  BANNED: Ban,
+  UNKNOWN: CircleDashed,
 };
 
 const LABELS: Record<string, string> = {
@@ -15,10 +26,12 @@ const LABELS: Record<string, string> = {
 };
 
 export function StatusBadge({ status }: { status: string }) {
+  const Icon = ICONS[status] ?? ICONS.UNKNOWN;
   return (
     <span
-      className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${COLORS[status] ?? COLORS.UNKNOWN}`}
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${COLORS[status] ?? COLORS.UNKNOWN}`}
     >
+      <Icon size={12} strokeWidth={2.5} />
       {LABELS[status] ?? status}
     </span>
   );

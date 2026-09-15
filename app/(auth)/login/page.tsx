@@ -1,6 +1,7 @@
 import { signIn } from "@/lib/auth";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
+import { Radio, LogIn } from "lucide-react";
 
 async function login(convite: string | undefined, formData: FormData) {
   "use server";
@@ -29,17 +30,25 @@ export default async function LoginPage({
 
   return (
     <main className="m-auto w-full max-w-sm px-6">
-      <h1 className="mb-8 text-xl font-semibold">Controle de Números</h1>
+      <div className="mb-8 flex items-center gap-2">
+        <span className="flex h-9 w-9 items-center justify-center rounded-md bg-accent text-accent-foreground">
+          <Radio size={18} strokeWidth={2.5} />
+        </span>
+        <h1 className="text-xl font-semibold tracking-tight">Controle de Números</h1>
+      </div>
 
       {convite && (
-        <p className="mb-4 text-sm text-neutral-400">
+        <p className="mb-4 text-sm text-muted-foreground">
           Já existe uma conta com esse e-mail. Entre para aceitar o convite.
         </p>
       )}
 
-      <form action={login.bind(null, convite)} className="flex flex-col gap-4">
+      <form
+        action={login.bind(null, convite)}
+        className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6 shadow-sm"
+      >
         <div className="flex flex-col gap-1">
-          <label htmlFor="email" className="text-sm text-neutral-400">
+          <label htmlFor="email" className="text-sm font-medium text-muted-foreground">
             E-mail
           </label>
           <input
@@ -47,12 +56,12 @@ export default async function LoginPage({
             name="email"
             type="email"
             required
-            className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 outline-none focus:ring-2 focus:ring-neutral-400"
+            className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
         <div className="flex flex-col gap-1">
-          <label htmlFor="password" className="text-sm text-neutral-400">
+          <label htmlFor="password" className="text-sm font-medium text-muted-foreground">
             Senha
           </label>
           <input
@@ -60,18 +69,19 @@ export default async function LoginPage({
             name="password"
             type="password"
             required
-            className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 outline-none focus:ring-2 focus:ring-neutral-400"
+            className="rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
         {error && (
-          <p className="text-sm text-red-400">E-mail ou senha inválidos.</p>
+          <p className="text-sm text-destructive">E-mail ou senha inválidos.</p>
         )}
 
         <button
           type="submit"
-          className="mt-2 rounded-md bg-neutral-100 py-2 font-medium text-neutral-900 hover:bg-white"
+          className="mt-2 flex items-center justify-center gap-1.5 rounded-md bg-accent py-2 font-medium text-accent-foreground transition hover:brightness-110"
         >
+          <LogIn size={16} />
           Entrar
         </button>
       </form>

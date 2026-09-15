@@ -1,9 +1,14 @@
 import { notFound } from "next/navigation";
+import { ArrowLeft, ClipboardCheck, ShieldAlert, History, Save } from "lucide-react";
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireOrg } from "@/lib/tenant";
 import { StatusBadge } from "../status-badge";
 import { createCheck } from "./actions";
 import { HealthChart } from "./health-chart";
+
+const inputClass =
+  "rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring";
 
 export default async function NumberDetailPage({
   params,
@@ -33,10 +38,18 @@ export default async function NumberDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <Link
+        href={`/${orgSlug}/numeros`}
+        className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
+      >
+        <ArrowLeft size={15} />
+        Voltar
+      </Link>
+
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold">{number.label}</h1>
-          <p className="text-sm text-neutral-400">{number.e164}</p>
+          <h1 className="text-xl font-semibold tracking-tight">{number.label}</h1>
+          <p className="font-mono text-sm text-muted-foreground">{number.e164}</p>
         </div>
         <StatusBadge status={number.currentStatus} />
       </div>
@@ -49,8 +62,9 @@ export default async function NumberDetailPage({
         />
       )}
 
-      <section className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-        <h2 className="mb-3 text-sm font-medium text-neutral-300">
+      <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+          <ClipboardCheck size={16} className="text-accent" />
           Registrar check manual
         </h2>
         <form
@@ -58,11 +72,8 @@ export default async function NumberDetailPage({
           className="flex flex-wrap items-end gap-3"
         >
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-neutral-400">Qualidade</label>
-            <select
-              name="qualityRating"
-              className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm"
-            >
+            <label className="text-xs font-medium text-muted-foreground">Qualidade</label>
+            <select name="qualityRating" className={inputClass}>
               <option value="">—</option>
               <option value="GREEN">Verde</option>
               <option value="YELLOW">Amarelo</option>
@@ -71,50 +82,51 @@ export default async function NumberDetailPage({
             </select>
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-neutral-400">Avisos recebidos</label>
+            <label className="text-xs font-medium text-muted-foreground">Avisos recebidos</label>
             <input
               type="number"
               name="warningsCount"
               min={0}
               defaultValue={0}
-              className="w-24 rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm"
+              className={`w-24 ${inputClass}`}
             />
           </div>
-          <label className="flex items-center gap-2 text-sm text-neutral-300">
-            <input type="checkbox" name="banned" className="accent-red-500" />
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <input type="checkbox" name="banned" className="accent-destructive" />
             Banido
           </label>
           <div className="flex flex-1 flex-col gap-1">
-            <label className="text-xs text-neutral-400">Observação</label>
-            <input
-              name="observation"
-              className="w-full rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm"
-            />
+            <label className="text-xs font-medium text-muted-foreground">Observação</label>
+            <input name="observation" className={`w-full ${inputClass}`} />
           </div>
           <button
             type="submit"
-            className="rounded-md bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-white"
+            className="flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition hover:brightness-110"
           >
+            <Save size={15} />
             Salvar check
           </button>
         </form>
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-medium text-neutral-300">Incidentes</h2>
+        <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+          <ShieldAlert size={16} className="text-accent" />
+          Incidentes
+        </h2>
         {incidents.length === 0 ? (
-          <p className="text-sm text-neutral-500">Nenhum incidente registrado.</p>
+          <p className="text-sm text-muted-foreground">Nenhum incidente registrado.</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {incidents.map((i) => (
               <li
                 key={i.id}
-                className="flex items-center justify-between rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm"
+                className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm"
               >
                 <span>
                   {i.fromStatus} → {i.toStatus}
                 </span>
-                <span className="text-neutral-500">
+                <span className="font-mono text-xs text-muted-foreground">
                   {i.openedAt.toLocaleString("pt-BR")}
                 </span>
               </li>
@@ -124,20 +136,26 @@ export default async function NumberDetailPage({
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-medium text-neutral-300">Histórico de checks</h2>
+        <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+          <History size={16} className="text-accent" />
+          Histórico de checks
+        </h2>
         <ul className="flex flex-col gap-2">
           {checks.map((c) => (
             <li
               key={c.id}
-              className="flex items-center justify-between rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm"
+              className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm"
             >
               <div className="flex items-center gap-3">
                 <StatusBadge status={c.status} />
-                <span className="text-neutral-400">score {c.score}</span>
-                {c.observation && <span className="text-neutral-500">{c.observation}</span>}
+                <span className="font-mono text-muted-foreground">score {c.score}</span>
+                {c.observation && (
+                  <span className="text-muted-foreground">{c.observation}</span>
+                )}
               </div>
-              <span className="text-neutral-500">
-                {c.createdAt.toLocaleString("pt-BR")} · {c.source === "API" ? "automático" : "manual"}
+              <span className="font-mono text-xs text-muted-foreground">
+                {c.createdAt.toLocaleString("pt-BR")} ·{" "}
+                {c.source === "API" ? "automático" : "manual"}
               </span>
             </li>
           ))}

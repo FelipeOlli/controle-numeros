@@ -2,30 +2,34 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Smartphone, BellRing, Users } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export function NavLinks({ orgSlug }: { orgSlug: string }) {
   const pathname = usePathname();
 
-  const links = [
-    { href: `/${orgSlug}/numeros`, label: "Números" },
-    { href: `/${orgSlug}/alertas`, label: "Alertas" },
-    { href: `/${orgSlug}/equipe`, label: "Equipe" },
+  const links: { href: string; label: string; icon: LucideIcon }[] = [
+    { href: `/${orgSlug}/numeros`, label: "Números", icon: Smartphone },
+    { href: `/${orgSlug}/alertas`, label: "Alertas", icon: BellRing },
+    { href: `/${orgSlug}/equipe`, label: "Equipe", icon: Users },
   ];
 
   return (
-    <nav className="flex gap-4 text-sm">
+    <nav className="flex gap-1 text-sm">
       {links.map((link) => {
         const active = pathname.startsWith(link.href);
+        const Icon = link.icon;
         return (
           <Link
             key={link.href}
             href={link.href}
             className={
               active
-                ? "font-medium text-neutral-100"
-                : "text-neutral-400 hover:text-neutral-100"
+                ? "flex items-center gap-1.5 rounded-md bg-muted px-3 py-1.5 font-medium text-foreground"
+                : "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
             }
           >
+            <Icon size={15} />
             {link.label}
           </Link>
         );

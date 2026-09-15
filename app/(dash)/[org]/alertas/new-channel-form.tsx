@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { createChannel } from "./actions";
 
 type Kind = "EMAIL" | "WEBHOOK" | "WHATSAPP";
 
 const inputClass =
-  "rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-400";
+  "rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring";
 
 export function NewChannelForm({ orgSlug }: { orgSlug: string }) {
   const [kind, setKind] = useState<Kind>("EMAIL");
@@ -14,7 +15,7 @@ export function NewChannelForm({ orgSlug }: { orgSlug: string }) {
   return (
     <form action={createChannel.bind(null, orgSlug)} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-neutral-400">Tipo</label>
+        <label className="text-xs font-medium text-muted-foreground">Tipo</label>
         <select
           name="kind"
           value={kind}
@@ -30,14 +31,14 @@ export function NewChannelForm({ orgSlug }: { orgSlug: string }) {
       <div className="flex flex-wrap gap-3">
         {kind === "EMAIL" && (
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-neutral-400">E-mail</label>
+            <label className="text-xs font-medium text-muted-foreground">E-mail</label>
             <input name="to" type="email" required className={inputClass} />
           </div>
         )}
 
         {kind === "WEBHOOK" && (
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-neutral-400">URL do webhook</label>
+            <label className="text-xs font-medium text-muted-foreground">URL do webhook</label>
             <input name="url" type="url" required className={`w-64 ${inputClass}`} />
           </div>
         )}
@@ -45,15 +46,15 @@ export function NewChannelForm({ orgSlug }: { orgSlug: string }) {
         {kind === "WHATSAPP" && (
           <>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-neutral-400">URL de envio (Evolution/Meta)</label>
+              <label className="text-xs font-medium text-muted-foreground">URL de envio (Evolution/Meta)</label>
               <input name="sendUrl" type="url" required className={`w-64 ${inputClass}`} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-neutral-400">API key</label>
+              <label className="text-xs font-medium text-muted-foreground">API key</label>
               <input name="apiKey" required className={inputClass} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-neutral-400">Número de destino</label>
+              <label className="text-xs font-medium text-muted-foreground">Número de destino</label>
               <input name="to" required placeholder="+5511999999999" className={inputClass} />
             </div>
           </>
@@ -62,8 +63,9 @@ export function NewChannelForm({ orgSlug }: { orgSlug: string }) {
 
       <button
         type="submit"
-        className="w-fit rounded-md bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-white"
+        className="flex w-fit items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition hover:brightness-110"
       >
+        <Plus size={15} />
         Adicionar canal
       </button>
     </form>
