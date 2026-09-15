@@ -6,6 +6,9 @@ import { prisma } from "@/lib/db";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
+  // Atrás do proxy do EasyPanel o host não é verificável estaticamente;
+  // NEXTAUTH_URL já fixa a origem esperada, então confiar no host aqui é seguro.
+  trustHost: true,
   providers: [
     Credentials({
       credentials: {
