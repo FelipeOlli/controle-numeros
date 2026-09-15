@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  VIEWER
+}
+
+enum Provider {
+  IUNGO
+  CHIP_FISICO
+  META_CLOUD
+  EVOLUTION
+  ZAPI
+}
+
+enum HealthStatus {
+  GREEN
+  YELLOW
+  RED
+  BANNED
+  UNKNOWN
+}
+
+enum CheckSource {
+  MANUAL
+  API
+}
+
+enum AlertChannelKind {
+  WHATSAPP
+  EMAIL
+  WEBHOOK
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  memberships         Membership[]
+  phoneNumbers        PhoneNumber[]
+  alertChannels       AlertChannel[]
+  alertLogs           AlertLog[]
+  providerCredentials ProviderCredential[]
+  invites             Invite[]
+}
+
+model Invite {
+  id         String    @id @default(cuid())
+  orgId      String
+  email      String
+  role       Role      @default(VIEWER)
+  token      String    @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+
+  memberships Membership[]
+  healthChecks HealthCheck[] @relation("HealthCheckCreatedBy")
+}
+
+model Membership {
+  id     String @id @default(cuid())
+  userId String
+  orgId  String
+  role   Role   @default(VIEWER)
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@index([orgId])
+}
+
+model PhoneNumber {
+  id            String       @id @default(cuid())
+  orgId         String
+  label         String
+  e164          String
+  provider      Provider
+  externalId    String?
+  tier          String?
+  currentStatus HealthStatus @default(UNKNOWN)
+  currentScore  Int          @default(0)
+  lastCheckAt   DateTime?
+  notes         String?
+  active        Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  org          Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  healthChecks HealthCheck[]
+  incidents    Incident[]
+  alertLogs    AlertLog[]
+
+  @@unique([orgId, e164])
+  @@index([orgId, currentStatus])
+}
+
+model HealthCheck {
+  id              String      @id @default(cuid())
+  phoneNumberId   String
+  status          HealthStatus
+  score           Int
+  source          CheckSource @default(MANUAL)
+  qualityRating   String?
+  messagingLimit  String?
+  warningsCount   Int?
+  observation     String?
+  createdById     String?
+  createdAt       DateTime    @default(now())
+
+  phoneNumber PhoneNumber @relation(fields: [phoneNumberId], references: [id], onDelete: Cascade)
+  createdBy   User?       @relation("HealthCheckCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([phoneNumberId, createdAt])
+}
+
+model Incident {
+  id            String        @id @default(cuid())
+  phoneNumberId String
+  fromStatus    HealthStatus
+  toStatus      HealthStatus
+  openedAt      DateTime      @default(now())
+  resolvedAt    DateTime?
+
+  phoneNumber PhoneNumber @relation(fields: [phoneNumberId], references: [id], onDelete: Cascade)
+
+  @@index([phoneNumberId, resolvedAt])
+}
+
+model AlertChannel {
+  id      String            @id @default(cuid())
+  orgId   String
+  kind    AlertChannelKind
+  config  Json
+  enabled Boolean           @default(true)
+
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  alertLogs AlertLog[]
+
+  @@index([orgId])
+}
+
+model AlertLog {
+  id            String   @id @default(cuid())
+  orgId         String
+  phoneNumberId String
+  channelId     String
+  payload       Json
+  ok            Boolean
+  error         String?
+  createdAt     DateTime @default(now())
+
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  phoneNumber PhoneNumber  @relation(fields: [phoneNumberId], references: [id], onDelete: Cascade)
+  channel     AlertChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, createdAt])
+}
+
+model ProviderCredential {
+  id        String   @id @default(cuid())
+  orgId     String
+  provider  Provider
+  config    Json
+  createdAt DateTime @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, provider])
+}
