@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { requireOrg } from "@/lib/tenant";
-import { createChannel } from "./actions";
 import { ToggleButton } from "./toggle-button";
+import { NewChannelForm } from "./new-channel-form";
 
 const KIND_LABELS: Record<string, string> = {
   EMAIL: "E-mail",
@@ -63,61 +63,7 @@ export default async function AlertasPage({
       {canManage && (
         <section className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
           <h2 className="mb-3 text-sm font-medium text-neutral-300">Novo canal</h2>
-          <form action={createChannel.bind(null, orgSlug)} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-neutral-400">Tipo</label>
-              <select
-                name="kind"
-                defaultValue="EMAIL"
-                className="w-48 rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm"
-              >
-                <option value="EMAIL">E-mail</option>
-                <option value="WEBHOOK">Webhook (n8n)</option>
-                <option value="WHATSAPP">WhatsApp</option>
-              </select>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-neutral-400">E-mail (canal E-mail)</label>
-                <input
-                  name="to"
-                  type="email"
-                  className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-neutral-400">URL do webhook</label>
-                <input
-                  name="url"
-                  type="url"
-                  className="w-64 rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-neutral-400">URL de envio (Evolution/Meta)</label>
-                <input
-                  name="sendUrl"
-                  type="url"
-                  className="w-64 rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-neutral-400">API key</label>
-                <input
-                  name="apiKey"
-                  className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-fit rounded-md bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-white"
-            >
-              Adicionar canal
-            </button>
-          </form>
+          <NewChannelForm orgSlug={orgSlug} />
         </section>
       )}
 

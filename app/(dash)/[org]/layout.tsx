@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth, signOut } from "@/lib/auth";
 import { OrgSwitcher } from "./org-switcher";
+import { NavLinks } from "./nav-links";
 
 export default async function DashLayout({
   children,
@@ -23,17 +23,7 @@ export default async function DashLayout({
       <header className="flex items-center justify-between border-b border-neutral-800 px-6 py-4">
         <div className="flex items-center gap-6">
           <span className="font-semibold">{membership.orgName}</span>
-          <nav className="flex gap-4 text-sm text-neutral-400">
-            <Link href={`/${orgSlug}/numeros`} className="hover:text-neutral-100">
-              Números
-            </Link>
-            <Link href={`/${orgSlug}/alertas`} className="hover:text-neutral-100">
-              Alertas
-            </Link>
-            <Link href={`/${orgSlug}/equipe`} className="hover:text-neutral-100">
-              Equipe
-            </Link>
-          </nav>
+          <NavLinks orgSlug={orgSlug} />
         </div>
 
         <div className="flex items-center gap-4 text-sm text-neutral-400">

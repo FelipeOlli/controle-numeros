@@ -79,7 +79,7 @@ export default async function NumerosPage({
             <input
               name="label"
               required
-              className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+              className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-400"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -88,14 +88,14 @@ export default async function NumerosPage({
               name="e164"
               placeholder="+5511999999999"
               required
-              className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+              className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-400"
             />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs text-neutral-400">Origem</label>
             <select
               name="provider"
-              className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+              className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-400"
             >
               {Object.entries(PROVIDER_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
