@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { ScoreRing } from "@/components/score-ring";
 import { SELECTABLE_STATUSES, STATUS_LABELS } from "@/lib/health";
+import { PROVIDER_LABELS } from "@/lib/providers";
 import { createCheck } from "./actions";
 import { HealthChart } from "./health-chart";
 import { DeleteNumberButton } from "./delete-number-button";
+import { EditNumberDialog } from "./edit-number-dialog";
 
 const inputClass =
   "rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring";
@@ -52,7 +54,16 @@ export default async function NumberDetailPage({
           Voltar
         </Link>
         {canManage && (
-          <DeleteNumberButton orgSlug={orgSlug} numberId={id} label={number.label} />
+          <div className="flex items-center gap-2">
+            <EditNumberDialog
+              orgSlug={orgSlug}
+              numberId={id}
+              label={number.label}
+              e164={number.e164}
+              provider={number.provider}
+            />
+            <DeleteNumberButton orgSlug={orgSlug} numberId={id} label={number.label} />
+          </div>
         )}
       </div>
 
@@ -60,6 +71,9 @@ export default async function NumberDetailPage({
         <div>
           <h1 className="text-xl font-semibold tracking-tight">{number.label}</h1>
           <p className="font-mono text-sm text-muted-foreground">{number.e164}</p>
+          <span className="mt-1 inline-block rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            {PROVIDER_LABELS[number.provider] ?? number.provider}
+          </span>
         </div>
         <div className="flex flex-col items-center gap-1">
           <ScoreRing score={number.currentScore} status={number.currentStatus} size={64} />
