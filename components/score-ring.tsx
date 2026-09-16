@@ -2,7 +2,8 @@ const COLORS: Record<string, string> = {
   GREEN: "#22c55e",
   YELLOW: "#f59e0b",
   RED: "#ef4444",
-  BANNED: "#64748b",
+  BANNED: "#ef4444",
+  LOST: "#64748b",
   UNKNOWN: "#64748b",
 };
 

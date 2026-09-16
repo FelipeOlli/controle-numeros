@@ -2,13 +2,11 @@ import "dotenv/config";
 import cron from "node-cron";
 import { PrismaClient } from "../generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { computeHealth } from "../lib/health";
+import { isStale } from "../lib/health";
 import { dispatchStatusChange } from "../lib/alerts/dispatch";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
-
-const STALE_AFTER_HOURS = 72;
 
 /**
  * Marca como UNKNOWN quem não recebe check há mais de 72h e abre incidente.
@@ -17,18 +15,15 @@ const STALE_AFTER_HOURS = 72;
  * números nunca chega a ficar "stale".
  */
 async function markStaleNumbers() {
-  const cutoff = new Date(Date.now() - STALE_AFTER_HOURS * 60 * 60 * 1000);
-
-  const stale = await prisma.phoneNumber.findMany({
-    where: {
-      active: true,
-      currentStatus: { not: "UNKNOWN" },
-      OR: [{ lastCheckAt: null }, { lastCheckAt: { lt: cutoff } }],
-    },
+  const candidates = await prisma.phoneNumber.findMany({
+    where: { active: true, currentStatus: { not: "UNKNOWN" } },
   });
 
+  const stale = candidates.filter((n) => isStale(n.lastCheckAt));
+
   for (const number of stale) {
-    const { status, score } = computeHealth({ lastCheckAt: number.lastCheckAt });
+    const status = "UNKNOWN" as const;
+    const score = 0;
 
     await prisma.$transaction([
       prisma.phoneNumber.update({

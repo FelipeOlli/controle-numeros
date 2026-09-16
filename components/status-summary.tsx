@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertTriangle, XCircle, CircleDashed } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Unplug, CircleDashed } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 const CARDS: {
@@ -23,11 +23,18 @@ const CARDS: {
     bg: "color-mix(in srgb, var(--warning) 15%, transparent)",
   },
   {
-    statuses: ["RED", "BANNED"],
+    statuses: ["RED"],
     label: "Críticos",
     icon: XCircle,
     color: "var(--destructive)",
     bg: "color-mix(in srgb, var(--destructive) 15%, transparent)",
+  },
+  {
+    statuses: ["BANNED", "LOST"],
+    label: "Banidos/perdidos",
+    icon: Unplug,
+    color: "var(--muted-foreground)",
+    bg: "var(--muted)",
   },
   {
     statuses: ["UNKNOWN"],
@@ -40,7 +47,7 @@ const CARDS: {
 
 export function StatusSummary({ statuses }: { statuses: string[] }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       {CARDS.map((card) => {
         const count = statuses.filter((s) => card.statuses.includes(s)).length;
         const Icon = card.icon;

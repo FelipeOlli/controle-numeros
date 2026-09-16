@@ -4,22 +4,18 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireOrg } from "@/lib/tenant";
 import { recordHealthCheck } from "@/lib/checks";
+import { SELECTABLE_STATUSES } from "@/lib/health";
 
 const checkSchema = z.object({
-  qualityRating: z.enum(["GREEN", "YELLOW", "RED", "UNKNOWN"]).optional(),
-  warningsCount: z.coerce.number().int().min(0).optional(),
-  banned: z.coerce.boolean().optional(),
+  status: z.enum(SELECTABLE_STATUSES),
   observation: z.string().optional(),
 });
 
 export async function createCheck(orgSlug: string, numberId: string, formData: FormData) {
   const { org, userId } = await requireOrg(orgSlug);
 
-  const qualityRatingRaw = formData.get("qualityRating");
   const data = checkSchema.parse({
-    qualityRating: qualityRatingRaw ? qualityRatingRaw : undefined,
-    warningsCount: formData.get("warningsCount") || undefined,
-    banned: formData.get("banned") === "on",
+    status: formData.get("status"),
     observation: formData.get("observation") || undefined,
   });
 
@@ -32,4 +28,5 @@ export async function createCheck(orgSlug: string, numberId: string, formData: F
 
   revalidatePath(`/${orgSlug}/numeros/${numberId}`);
   revalidatePath(`/${orgSlug}/numeros`);
+  revalidatePath("/painel");
 }

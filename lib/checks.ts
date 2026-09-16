@@ -1,17 +1,15 @@
 import { prisma } from "@/lib/db";
 import { TenantError } from "@/lib/tenant";
-import { computeHealth, type QualityRating } from "@/lib/health";
+import { scoreForStatus } from "@/lib/health";
 import { dispatchStatusChange } from "@/lib/alerts/dispatch";
-import type { CheckSource } from "@/generated/prisma/enums";
+import type { CheckSource, HealthStatus } from "@/generated/prisma/enums";
 
 export interface RecordCheckInput {
   orgId: string;
   phoneNumberId: string;
   userId?: string;
   source?: CheckSource;
-  qualityRating?: QualityRating;
-  warningsCount?: number;
-  banned?: boolean;
+  status: HealthStatus;
   observation?: string;
 }
 
@@ -25,6 +23,7 @@ function statusRank(status: string) {
     case "UNKNOWN":
       return 1;
     case "BANNED":
+    case "LOST":
       return 0;
     default:
       return 1;
@@ -44,22 +43,8 @@ export async function recordHealthCheck(input: RecordCheckInput) {
     throw new TenantError("Número não encontrado", 404);
   }
 
-  const openIncidents = await prisma.incident.count({
-    where: {
-      phoneNumberId: number.id,
-      resolvedAt: null,
-      openedAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
-    },
-  });
-
-  const { score, status } = computeHealth({
-    qualityRating: input.qualityRating,
-    warningsCount: input.warningsCount,
-    openIncidentsLast30d: openIncidents,
-    lastCheckAt: new Date(),
-    banned: input.banned,
-  });
-
+  const status = input.status;
+  const score = scoreForStatus(status);
   const previousStatus = number.currentStatus;
 
   const result = await prisma.$transaction(async (tx) => {
@@ -69,8 +54,6 @@ export async function recordHealthCheck(input: RecordCheckInput) {
         status,
         score,
         source: input.source ?? "MANUAL",
-        qualityRating: input.qualityRating,
-        warningsCount: input.warningsCount,
         observation: input.observation,
         createdById: input.userId,
       },

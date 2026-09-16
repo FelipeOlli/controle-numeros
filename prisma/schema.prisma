@@ -26,6 +26,7 @@ enum HealthStatus {
   YELLOW
   RED
   BANNED
+  LOST
   UNKNOWN
 }
 
@@ -119,17 +120,15 @@ model PhoneNumber {
 }
 
 model HealthCheck {
-  id              String      @id @default(cuid())
-  phoneNumberId   String
-  status          HealthStatus
-  score           Int
-  source          CheckSource @default(MANUAL)
-  qualityRating   String?
-  messagingLimit  String?
-  warningsCount   Int?
-  observation     String?
-  createdById     String?
-  createdAt       DateTime    @default(now())
+  id             String      @id @default(cuid())
+  phoneNumberId  String
+  status         HealthStatus
+  score          Int
+  source         CheckSource @default(MANUAL)
+  messagingLimit String?
+  observation    String?
+  createdById    String?
+  createdAt      DateTime    @default(now())
 
   phoneNumber PhoneNumber @relation(fields: [phoneNumberId], references: [id], onDelete: Cascade)
   createdBy   User?       @relation("HealthCheckCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)

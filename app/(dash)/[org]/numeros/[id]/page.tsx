@@ -6,6 +6,7 @@ import { requireOrg } from "@/lib/tenant";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { ScoreRing } from "@/components/score-ring";
+import { SELECTABLE_STATUSES, STATUS_LABELS } from "@/lib/health";
 import { createCheck } from "./actions";
 import { HealthChart } from "./health-chart";
 import { DeleteNumberButton } from "./delete-number-button";
@@ -77,43 +78,32 @@ export default async function NumberDetailPage({
       <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
           <ClipboardCheck size={16} className="text-primary" />
-          Registrar check manual
+          Registrar status
         </h2>
         <form
           action={createCheck.bind(null, orgSlug, id)}
           className="flex flex-wrap items-end gap-3"
         >
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Qualidade</label>
-            <select name="qualityRating" className={inputClass}>
-              <option value="">—</option>
-              <option value="GREEN">Verde</option>
-              <option value="YELLOW">Amarelo</option>
-              <option value="RED">Vermelho</option>
-              <option value="UNKNOWN">Desconhecido</option>
+            <label className="text-xs font-medium text-muted-foreground">Status</label>
+            <select name="status" required defaultValue="" className={`w-56 ${inputClass}`}>
+              <option value="" disabled>
+                Selecione o estado atual
+              </option>
+              {SELECTABLE_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {STATUS_LABELS[status]}
+                </option>
+              ))}
             </select>
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Avisos recebidos</label>
-            <input
-              type="number"
-              name="warningsCount"
-              min={0}
-              defaultValue={0}
-              className={`w-24 ${inputClass}`}
-            />
-          </div>
-          <label className="flex items-center gap-2 text-sm text-foreground">
-            <input type="checkbox" name="banned" className="accent-destructive" />
-            Banido
-          </label>
           <div className="flex flex-1 flex-col gap-1">
             <label className="text-xs font-medium text-muted-foreground">Observação</label>
             <input name="observation" className={`w-full ${inputClass}`} />
           </div>
           <Button type="submit">
             <Save size={15} />
-            Salvar check
+            Salvar
           </Button>
         </form>
       </section>
@@ -133,7 +123,7 @@ export default async function NumberDetailPage({
                 className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm"
               >
                 <span>
-                  {i.fromStatus} → {i.toStatus}
+                  {STATUS_LABELS[i.fromStatus]} → {STATUS_LABELS[i.toStatus]}
                 </span>
                 <span className="font-mono text-xs text-muted-foreground">
                   {i.openedAt.toLocaleString("pt-BR")}

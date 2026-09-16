@@ -3,12 +3,11 @@ import { z } from "zod";
 import { requireOrg } from "@/lib/tenant";
 import { handleApiError } from "@/lib/api";
 import { recordHealthCheck } from "@/lib/checks";
+import { SELECTABLE_STATUSES } from "@/lib/health";
 
 const createSchema = z.object({
   phoneNumberId: z.string(),
-  qualityRating: z.enum(["GREEN", "YELLOW", "RED", "UNKNOWN"]).optional(),
-  warningsCount: z.number().int().min(0).optional(),
-  banned: z.boolean().optional(),
+  status: z.enum(SELECTABLE_STATUSES),
   observation: z.string().optional(),
   // Coletores automáticos (fase 2) chamam esta rota com source: "API".
   source: z.enum(["MANUAL", "API"]).optional(),
@@ -28,9 +27,7 @@ export async function POST(
       phoneNumberId: body.phoneNumberId,
       userId,
       source: body.source,
-      qualityRating: body.qualityRating,
-      warningsCount: body.warningsCount,
-      banned: body.banned,
+      status: body.status,
       observation: body.observation,
     });
 
