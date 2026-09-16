@@ -4,7 +4,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireOrg } from "@/lib/tenant";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "../status-badge";
+import { StatusBadge } from "@/components/status-badge";
 import { createCheck } from "./actions";
 import { HealthChart } from "./health-chart";
 

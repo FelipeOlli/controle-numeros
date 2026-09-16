@@ -1,50 +1,35 @@
-import { notFound } from "next/navigation";
-import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Radio, LogOut } from "lucide-react";
 import { auth, signOut } from "@/lib/auth";
-import { OrgSwitcher } from "./org-switcher";
-import { NavLinks } from "./nav-links";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { GlobalNavLinks } from "./nav-links";
 
-export default async function DashLayout({
+export default async function GlobalLayout({
   children,
-  params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ org: string }>;
 }) {
-  const { org: orgSlug } = await params;
   const session = await auth();
-
-  const membership = session?.memberships.find((m) => m.orgSlug === orgSlug);
-  if (!session?.user || !membership) {
-    notFound();
+  if (!session?.user) {
+    redirect("/login");
   }
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card/80 px-6 py-3 backdrop-blur">
         <div className="flex items-center gap-8">
-          <div className="flex items-center gap-2 text-sm">
-            <Link
-              href="/painel"
-              className="flex items-center gap-2 text-muted-foreground transition hover:text-foreground"
-            >
-              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <Radio size={16} strokeWidth={2.5} />
-              </span>
-              Painel
-            </Link>
-            <span className="text-muted-foreground">/</span>
-            <span className="font-semibold tracking-tight">{membership.orgName}</span>
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <Radio size={16} strokeWidth={2.5} />
+            </span>
+            <span className="font-semibold tracking-tight">Controle de Números</span>
           </div>
-          <NavLinks orgSlug={orgSlug} />
+          <GlobalNavLinks />
         </div>
 
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <ThemeToggle />
-          <OrgSwitcher current={orgSlug} orgs={session.memberships} />
           <span className="hidden font-mono text-xs sm:inline">{session.user.email}</span>
           <form
             action={async () => {

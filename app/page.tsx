@@ -8,10 +8,9 @@ export default async function Home() {
     redirect("/login");
   }
 
-  const first = session.memberships[0];
-  if (!first) {
+  if (session.memberships.length === 0) {
     redirect("/sem-organizacao");
   }
 
-  redirect(`/${first.orgSlug}/numeros`);
+  redirect("/painel");
 }

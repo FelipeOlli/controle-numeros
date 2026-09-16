@@ -3,16 +3,9 @@ import { Plus, Inbox } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireOrg } from "@/lib/tenant";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "./status-badge";
+import { StatusBadge } from "@/components/status-badge";
+import { PROVIDER_LABELS } from "@/lib/providers";
 import { createNumber } from "./actions";
-
-const PROVIDER_LABELS: Record<string, string> = {
-  IUNGO: "Iungo",
-  CHIP_FISICO: "Chip físico",
-  META_CLOUD: "Meta Cloud API",
-  EVOLUTION: "Evolution API",
-  ZAPI: "Z-API",
-};
 
 const inputClass =
   "rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring";

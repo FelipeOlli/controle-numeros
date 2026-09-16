@@ -38,32 +38,12 @@ export default async function EquipePage({
 
   return (
     <div className="flex flex-col gap-8">
-      <section>
-        <h1 className="mb-3 text-xl font-semibold tracking-tight">Membros</h1>
-        <ul className="flex flex-col gap-2">
-          {members.map((m) => (
-            <li
-              key={m.id}
-              className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2.5 text-sm shadow-sm"
-            >
-              <div className="flex items-center gap-3">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium uppercase text-foreground">
-                  {(m.user.name ?? m.user.email).slice(0, 2)}
-                </span>
-                <span className="text-foreground">{m.user.name ?? m.user.email}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                  {ROLE_LABELS[m.role] ?? m.role}
-                </span>
-                {isOwner && m.userId !== userId && (
-                  <RemoveButton orgSlug={orgSlug} membershipId={m.id} />
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">Equipe</h1>
+        <p className="text-sm text-muted-foreground">
+          {members.length} pessoa{members.length === 1 ? "" : "s"} com acesso
+        </p>
+      </div>
 
       {canManage && (
         <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
@@ -110,6 +90,33 @@ export default async function EquipePage({
           </ul>
         </section>
       )}
+
+      <section>
+        <h2 className="mb-3 text-sm font-medium text-foreground">Membros</h2>
+        <ul className="flex flex-col gap-2">
+          {members.map((m) => (
+            <li
+              key={m.id}
+              className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2.5 text-sm shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium uppercase text-foreground">
+                  {(m.user.name ?? m.user.email).slice(0, 2)}
+                </span>
+                <span className="text-foreground">{m.user.name ?? m.user.email}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                  {ROLE_LABELS[m.role] ?? m.role}
+                </span>
+                {isOwner && m.userId !== userId && (
+                  <RemoveButton orgSlug={orgSlug} membershipId={m.id} />
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }
