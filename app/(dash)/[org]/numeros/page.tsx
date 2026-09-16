@@ -1,16 +1,12 @@
 import Link from "next/link";
-import { Plus, Inbox } from "lucide-react";
+import { Inbox } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireOrg } from "@/lib/tenant";
-import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { ScoreRing } from "@/components/score-ring";
 import { StatusSummary } from "@/components/status-summary";
 import { PROVIDER_LABELS } from "@/lib/providers";
-import { createNumber } from "./actions";
-
-const inputClass =
-  "rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring";
+import { AddNumberDialog } from "./add-number-dialog";
 
 export default async function NumerosPage({
   params,
@@ -41,12 +37,15 @@ export default async function NumerosPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Números</h1>
-        <p className="text-sm text-muted-foreground">
-          {numbers.length} número{numbers.length === 1 ? "" : "s"} monitorado
-          {numbers.length === 1 ? "" : "s"}
-        </p>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Números</h1>
+          <p className="text-sm text-muted-foreground">
+            {numbers.length} número{numbers.length === 1 ? "" : "s"} monitorado
+            {numbers.length === 1 ? "" : "s"}
+          </p>
+        </div>
+        {canManage && <AddNumberDialog orgSlug={orgSlug} />}
       </div>
 
       <StatusSummary statuses={numbers.map((n) => n.currentStatus)} />
@@ -81,41 +80,6 @@ export default async function NumerosPage({
           </Link>
         ))}
       </div>
-
-      {canManage && (
-        <form
-          action={createNumber.bind(null, orgSlug)}
-          className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4 shadow-sm"
-        >
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Nome/label</label>
-            <input name="label" required className={inputClass} />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Número (E.164)</label>
-            <input
-              name="e164"
-              placeholder="+5511999999999"
-              required
-              className={`font-mono ${inputClass}`}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Origem</label>
-            <select name="provider" className={inputClass}>
-              {Object.entries(PROVIDER_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <Button type="submit">
-            <Plus size={16} />
-            Adicionar número
-          </Button>
-        </form>
-      )}
     </div>
   );
 }

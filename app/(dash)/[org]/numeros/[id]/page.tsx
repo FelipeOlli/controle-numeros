@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { ScoreRing } from "@/components/score-ring";
 import { createCheck } from "./actions";
 import { HealthChart } from "./health-chart";
+import { DeleteNumberButton } from "./delete-number-button";
 
 const inputClass =
   "rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring";
@@ -18,7 +19,8 @@ export default async function NumberDetailPage({
   params: Promise<{ org: string; id: string }>;
 }) {
   const { org: orgSlug, id } = await params;
-  const { org } = await requireOrg(orgSlug);
+  const { org, role } = await requireOrg(orgSlug);
+  const canManage = role === "OWNER" || role === "ADMIN";
 
   const number = await prisma.phoneNumber.findUnique({ where: { id } });
   if (!number || number.orgId !== org.id) {
@@ -40,13 +42,18 @@ export default async function NumberDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        href={`/${orgSlug}/numeros`}
-        className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
-      >
-        <ArrowLeft size={15} />
-        Voltar
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link
+          href={`/${orgSlug}/numeros`}
+          className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
+        >
+          <ArrowLeft size={15} />
+          Voltar
+        </Link>
+        {canManage && (
+          <DeleteNumberButton orgSlug={orgSlug} numberId={id} label={number.label} />
+        )}
+      </div>
 
       <div className="flex items-center justify-between">
         <div>
