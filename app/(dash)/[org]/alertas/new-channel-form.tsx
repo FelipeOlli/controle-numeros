@@ -33,7 +33,7 @@ export function NewChannelForm({ orgSlug }: { orgSlug: string }) {
         {kind === "EMAIL" && (
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-muted-foreground">E-mail</label>
-            <input name="to" type="email" required className={inputClass} />
+            <input name="to" type="email" required className={`w-80 ${inputClass}`} />
           </div>
         )}
 
@@ -52,11 +52,16 @@ export function NewChannelForm({ orgSlug }: { orgSlug: string }) {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-muted-foreground">API key</label>
-              <input name="apiKey" required className={inputClass} />
+              <input name="apiKey" required className={`w-64 ${inputClass}`} />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-muted-foreground">Número de destino</label>
-              <input name="to" required placeholder="+5511999999999" className={inputClass} />
+              <input
+                name="to"
+                required
+                placeholder="+5511999999999"
+                className={`w-56 font-mono ${inputClass}`}
+              />
             </div>
           </>
         )}
