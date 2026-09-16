@@ -39,7 +39,7 @@ export default async function AlertasPage({
   return (
     <div className="flex flex-col gap-8">
       <section>
-        <h1 className="mb-3 text-xl font-semibold tracking-tight">Canais de alerta</h1>
+        <h1 className="mb-3 text-xl font-semibold tracking-tight">Canais de notificação</h1>
         <ul className="flex flex-col gap-2">
           {channels.map((c) => {
             const Icon = KIND_ICONS[c.kind] ?? Radio;
@@ -112,7 +112,7 @@ export default async function AlertasPage({
             </li>
           ))}
           {logs.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhum alerta disparado ainda.</p>
+            <p className="text-sm text-muted-foreground">Nenhuma notificação disparada ainda.</p>
           )}
         </ul>
       </section>

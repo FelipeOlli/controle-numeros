@@ -10,7 +10,7 @@ export function NavLinks({ orgSlug }: { orgSlug: string }) {
 
   const links: { href: string; label: string; icon: LucideIcon }[] = [
     { href: `/${orgSlug}/numeros`, label: "Números", icon: Smartphone },
-    { href: `/${orgSlug}/alertas`, label: "Alertas", icon: BellRing },
+    { href: `/${orgSlug}/alertas`, label: "Notificações", icon: BellRing },
     { href: `/${orgSlug}/equipe`, label: "Equipe", icon: Users },
   ];
 
