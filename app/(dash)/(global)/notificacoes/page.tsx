@@ -20,38 +20,54 @@ const KIND_ICONS: Record<string, LucideIcon> = {
 
 export default async function NotificacoesPage() {
   const session = await auth();
-  const canManage = session!.memberships.some((m) => m.role === "OWNER");
+  const isOwnerSomewhere = session!.memberships.some((m) => m.role === "OWNER");
 
-  const [channels, logs, user] = await Promise.all([
+  // Quem administra alguma empresa vê a config geral da plataforma; quem
+  // não é OWNER em lugar nenhum só decide se quer receber aviso ou não.
+  if (!isOwnerSomewhere) {
+    const user = await prisma.user.findUnique({ where: { id: session!.user.id } });
+
+    return (
+      <div className="flex flex-col gap-8">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Minhas notificações</h1>
+          <p className="text-sm text-muted-foreground">
+            Avisos por e-mail dos números das empresas que você tem acesso.
+          </p>
+        </div>
+
+        <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+            <UserCog size={16} className="text-primary" />
+            Minha notificação
+          </h2>
+          <PersonalNotifyForm
+            notifyEnabled={user?.notifyEnabled ?? false}
+            notifyEmail={user?.notifyEmail ?? null}
+            accountEmail={user?.email ?? ""}
+          />
+        </section>
+      </div>
+    );
+  }
+
+  const [channels, logs] = await Promise.all([
     prisma.alertChannel.findMany(),
     prisma.alertLog.findMany({
       orderBy: { createdAt: "desc" },
       take: 30,
       include: { phoneNumber: { include: { org: true } }, channel: true },
     }),
-    prisma.user.findUnique({ where: { id: session!.user.id } }),
   ]);
 
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Notificações</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Canais de notificação da plataforma</h1>
         <p className="text-sm text-muted-foreground">
           Canais globais, valem pra qualquer empresa da plataforma.
         </p>
       </div>
-
-      <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-          <UserCog size={16} className="text-primary" />
-          Minha notificação pessoal
-        </h2>
-        <PersonalNotifyForm
-          notifyEnabled={user?.notifyEnabled ?? false}
-          notifyEmail={user?.notifyEmail ?? null}
-          accountEmail={user?.email ?? ""}
-        />
-      </section>
 
       <section>
         <h2 className="mb-3 text-sm font-medium text-foreground">Canais globais</h2>
@@ -87,7 +103,7 @@ export default async function NotificacoesPage() {
                     />
                     {c.enabled ? "ativo" : "inativo"}
                   </span>
-                  {canManage && <ToggleButton channelId={c.id} enabled={c.enabled} />}
+                  <ToggleButton channelId={c.id} enabled={c.enabled} />
                 </div>
               </li>
             );
@@ -98,12 +114,10 @@ export default async function NotificacoesPage() {
         </ul>
       </section>
 
-      {canManage && (
-        <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
-          <h2 className="mb-3 text-sm font-medium text-foreground">Novo canal</h2>
-          <NewChannelForm />
-        </section>
-      )}
+      <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+        <h2 className="mb-3 text-sm font-medium text-foreground">Novo canal</h2>
+        <NewChannelForm />
+      </section>
 
       <section>
         <h2 className="mb-3 text-sm font-medium text-foreground">Últimos disparos</h2>
