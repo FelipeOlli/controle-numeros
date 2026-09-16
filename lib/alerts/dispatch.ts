@@ -13,14 +13,20 @@ interface TransitionInfo {
 }
 
 /**
- * Dispara alertas para todos os canais ativos da org quando o status de um
- * número piora. Cada tentativa vira um AlertLog, mesmo em caso de falha —
- * é o histórico de auditoria dos avisos.
+ * Dispara alertas quando o status de um número piora: pros canais globais
+ * ativos (valem pra qualquer empresa) e por e-mail pra cada usuário com
+ * acesso à empresa do número que ligou "recebo notificações". Cada
+ * tentativa vira um AlertLog, mesmo em caso de falha — é o histórico de
+ * auditoria dos avisos.
  */
 export async function dispatchStatusChange(info: TransitionInfo) {
-  const channels = await prisma.alertChannel.findMany({
-    where: { orgId: info.orgId, enabled: true },
-  });
+  const [channels, notifyUsers] = await Promise.all([
+    prisma.alertChannel.findMany({ where: { enabled: true } }),
+    prisma.user.findMany({
+      where: { notifyEnabled: true, memberships: { some: { orgId: info.orgId } } },
+      select: { id: true, email: true, notifyEmail: true },
+    }),
+  ]);
 
   const subject = `[${info.toStatus}] ${info.phoneLabel} mudou de ${info.fromStatus} para ${info.toStatus}`;
   const payload = {
@@ -31,8 +37,8 @@ export async function dispatchStatusChange(info: TransitionInfo) {
     at: new Date().toISOString(),
   };
 
-  await Promise.all(
-    channels.map(async (channel) => {
+  await Promise.all([
+    ...channels.map(async (channel) => {
       let ok = true;
       let error: string | undefined;
 
@@ -55,7 +61,7 @@ export async function dispatchStatusChange(info: TransitionInfo) {
 
       await prisma.alertLog.create({
         data: {
-          orgId: info.orgId,
+          orgIdAtDispatch: info.orgId,
           phoneNumberId: info.phoneNumberId,
           channelId: channel.id,
           payload,
@@ -64,5 +70,31 @@ export async function dispatchStatusChange(info: TransitionInfo) {
         },
       });
     }),
-  );
+    ...notifyUsers.map(async (user) => {
+      let ok = true;
+      let error: string | undefined;
+
+      try {
+        await sendEmailAlert(
+          { to: user.notifyEmail ?? user.email },
+          subject,
+          JSON.stringify(payload, null, 2),
+        );
+      } catch (err) {
+        ok = false;
+        error = err instanceof Error ? err.message : String(err);
+      }
+
+      await prisma.alertLog.create({
+        data: {
+          orgIdAtDispatch: info.orgId,
+          phoneNumberId: info.phoneNumberId,
+          notifiedUserId: user.id,
+          payload,
+          ok,
+          error,
+        },
+      });
+    }),
+  ]);
 }

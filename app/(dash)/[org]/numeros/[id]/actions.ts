@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireOrg, requireRole, TenantError } from "@/lib/tenant";
@@ -16,8 +17,14 @@ const updateSchema = z.object({
   label: z.string().min(1),
   e164: z.string().min(8),
   provider: z.enum(["IUNGO", "CHIP_FISICO", "META_CLOUD", "EVOLUTION", "ZAPI"]),
+  targetOrgSlug: z.string().optional(),
 });
 
+/**
+ * Edita label/E.164/origem e, opcionalmente, move o número pra outra
+ * empresa (mantendo HealthCheck/Incident — eles não têm orgId, seguem o
+ * número sozinhos). Exige OWNER/ADMIN nas duas empresas quando muda.
+ */
 export async function updateNumber(orgSlug: string, numberId: string, formData: FormData) {
   const { org, role } = await requireOrg(orgSlug);
   requireRole(role, ["OWNER", "ADMIN"]);
@@ -31,9 +38,37 @@ export async function updateNumber(orgSlug: string, numberId: string, formData: 
     label: formData.get("label"),
     e164: formData.get("e164"),
     provider: formData.get("provider"),
+    targetOrgSlug: formData.get("targetOrgSlug") || undefined,
   });
 
-  await prisma.phoneNumber.update({ where: { id: numberId }, data });
+  const isMoving = data.targetOrgSlug && data.targetOrgSlug !== orgSlug;
+
+  if (isMoving) {
+    const { org: targetOrg, role: targetRole } = await requireOrg(data.targetOrgSlug!);
+    requireRole(targetRole, ["OWNER", "ADMIN"]);
+
+    const collision = await prisma.phoneNumber.findUnique({
+      where: { orgId_e164: { orgId: targetOrg.id, e164: data.e164 } },
+    });
+    if (collision) {
+      throw new Error("Já existe um número com esse E.164 na empresa de destino");
+    }
+
+    await prisma.phoneNumber.update({
+      where: { id: numberId },
+      data: { label: data.label, e164: data.e164, provider: data.provider, orgId: targetOrg.id },
+    });
+
+    revalidatePath(`/${orgSlug}/numeros`);
+    revalidatePath(`/${data.targetOrgSlug}/numeros`);
+    revalidatePath("/painel");
+    redirect(`/${data.targetOrgSlug}/numeros/${numberId}`);
+  }
+
+  await prisma.phoneNumber.update({
+    where: { id: numberId },
+    data: { label: data.label, e164: data.e164, provider: data.provider },
+  });
 
   revalidatePath(`/${orgSlug}/numeros/${numberId}`);
   revalidatePath(`/${orgSlug}/numeros`);

@@ -2,6 +2,8 @@
 export const RESERVED_SLUGS = new Set([
   "painel",
   "empresas",
+  "equipe",
+  "notificacoes",
   "login",
   "convite",
   "api",

@@ -1,9 +1,10 @@
-import { Mail, Webhook, MessageCircle, Radio } from "lucide-react";
+import { Mail, Webhook, MessageCircle, Radio, UserCog } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { prisma } from "@/lib/db";
-import { requireOrg } from "@/lib/tenant";
+import { auth } from "@/lib/auth";
 import { ToggleButton } from "./toggle-button";
 import { NewChannelForm } from "./new-channel-form";
+import { PersonalNotifyForm } from "./personal-notify-form";
 
 const KIND_LABELS: Record<string, string> = {
   EMAIL: "E-mail",
@@ -17,29 +18,43 @@ const KIND_ICONS: Record<string, LucideIcon> = {
   WHATSAPP: MessageCircle,
 };
 
-export default async function AlertasPage({
-  params,
-}: {
-  params: Promise<{ org: string }>;
-}) {
-  const { org: orgSlug } = await params;
-  const { org, role } = await requireOrg(orgSlug);
-  const canManage = role === "OWNER" || role === "ADMIN";
+export default async function NotificacoesPage() {
+  const session = await auth();
+  const canManage = session!.memberships.some((m) => m.role === "OWNER");
 
-  const [channels, logs] = await Promise.all([
-    prisma.alertChannel.findMany({ where: { orgId: org.id } }),
+  const [channels, logs, user] = await Promise.all([
+    prisma.alertChannel.findMany(),
     prisma.alertLog.findMany({
-      where: { orgId: org.id },
       orderBy: { createdAt: "desc" },
       take: 30,
-      include: { phoneNumber: true, channel: true },
+      include: { phoneNumber: { include: { org: true } }, channel: true },
     }),
+    prisma.user.findUnique({ where: { id: session!.user.id } }),
   ]);
 
   return (
     <div className="flex flex-col gap-8">
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">Notificações</h1>
+        <p className="text-sm text-muted-foreground">
+          Canais globais, valem pra qualquer empresa da plataforma.
+        </p>
+      </div>
+
+      <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+          <UserCog size={16} className="text-primary" />
+          Minha notificação pessoal
+        </h2>
+        <PersonalNotifyForm
+          notifyEnabled={user?.notifyEnabled ?? false}
+          notifyEmail={user?.notifyEmail ?? null}
+          accountEmail={user?.email ?? ""}
+        />
+      </section>
+
       <section>
-        <h1 className="mb-3 text-xl font-semibold tracking-tight">Canais de notificação</h1>
+        <h2 className="mb-3 text-sm font-medium text-foreground">Canais globais</h2>
         <ul className="flex flex-col gap-2">
           {channels.map((c) => {
             const Icon = KIND_ICONS[c.kind] ?? Radio;
@@ -72,9 +87,7 @@ export default async function AlertasPage({
                     />
                     {c.enabled ? "ativo" : "inativo"}
                   </span>
-                  {canManage && (
-                    <ToggleButton orgSlug={orgSlug} channelId={c.id} enabled={c.enabled} />
-                  )}
+                  {canManage && <ToggleButton channelId={c.id} enabled={c.enabled} />}
                 </div>
               </li>
             );
@@ -88,7 +101,7 @@ export default async function AlertasPage({
       {canManage && (
         <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
           <h2 className="mb-3 text-sm font-medium text-foreground">Novo canal</h2>
-          <NewChannelForm orgSlug={orgSlug} />
+          <NewChannelForm />
         </section>
       )}
 
@@ -101,7 +114,8 @@ export default async function AlertasPage({
               className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm shadow-sm"
             >
               <span>
-                {l.phoneNumber.label} → {KIND_LABELS[l.channel.kind] ?? l.channel.kind}
+                {l.phoneNumber.org.name} · {l.phoneNumber.label} →{" "}
+                {l.channel ? KIND_LABELS[l.channel.kind] ?? l.channel.kind : "E-mail pessoal"}
               </span>
               <span className={l.ok ? "text-primary" : "text-destructive"}>
                 {l.ok ? "ok" : l.error ?? "falhou"}

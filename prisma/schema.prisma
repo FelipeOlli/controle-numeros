@@ -49,8 +49,6 @@ model Organization {
 
   memberships         Membership[]
   phoneNumbers        PhoneNumber[]
-  alertChannels       AlertChannel[]
-  alertLogs           AlertLog[]
   providerCredentials ProviderCredential[]
   invites             Invite[]
 }
@@ -71,13 +69,15 @@ model Invite {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String?
-  createdAt    DateTime @default(now())
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String?
+  notifyEnabled Boolean  @default(false)
+  notifyEmail   String?
+  createdAt     DateTime @default(now())
 
-  memberships Membership[]
+  memberships  Membership[]
   healthChecks HealthCheck[] @relation("HealthCheckCreatedBy")
 }
 
@@ -149,34 +149,37 @@ model Incident {
   @@index([phoneNumberId, resolvedAt])
 }
 
+/// Canais de notificação globais (não são mais por empresa): valem pra
+/// qualquer alerta disparado em qualquer empresa da plataforma.
 model AlertChannel {
-  id      String            @id @default(cuid())
-  orgId   String
+  id      String           @id @default(cuid())
   kind    AlertChannelKind
   config  Json
-  enabled Boolean           @default(true)
+  enabled Boolean          @default(true)
 
-  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   alertLogs AlertLog[]
-
-  @@index([orgId])
 }
 
 model AlertLog {
   id            String   @id @default(cuid())
-  orgId         String
+  /// Empresa dona do número no momento do disparo — só histórico, não
+  /// isola mais nada (Notificações é global).
+  orgIdAtDispatch String?
   phoneNumberId String
-  channelId     String
+  /// Nulo quando o disparo foi um e-mail pessoal (opt-in de usuário), não
+  /// um AlertChannel global.
+  channelId     String?
+  /// Preenchido só nos disparos pessoais — quem recebeu.
+  notifiedUserId String?
   payload       Json
   ok            Boolean
   error         String?
   createdAt     DateTime @default(now())
 
-  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  phoneNumber PhoneNumber  @relation(fields: [phoneNumberId], references: [id], onDelete: Cascade)
-  channel     AlertChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  phoneNumber PhoneNumber   @relation(fields: [phoneNumberId], references: [id], onDelete: Cascade)
+  channel     AlertChannel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
-  @@index([orgId, createdAt])
+  @@index([createdAt])
 }
 
 model ProviderCredential {

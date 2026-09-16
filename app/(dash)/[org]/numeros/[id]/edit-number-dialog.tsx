@@ -22,12 +22,15 @@ export function EditNumberDialog({
   label,
   e164,
   provider,
+  movableOrgs,
 }: {
   orgSlug: string;
   numberId: string;
   label: string;
   e164: string;
   provider: string;
+  /** Empresas (OWNER/ADMIN) pra onde este número pode ser movido, exceto a atual. */
+  movableOrgs: { slug: string; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -41,8 +44,8 @@ export function EditNumberDialog({
         <DialogHeader>
           <DialogTitle>Editar número</DialogTitle>
           <DialogDescription>
-            Corrige o nome, o número ou a origem — útil quando um número físico passa a
-            usar a Meta Cloud API, ou vice-versa.
+            Corrige o nome, o número, a origem — ou move ele pra outra empresa mantendo
+            todo o histórico de checks.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -75,6 +78,19 @@ export function EditNumberDialog({
               ))}
             </select>
           </div>
+          {movableOrgs.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-muted-foreground">Empresa</label>
+              <select name="targetOrgSlug" defaultValue={orgSlug} className={inputClass}>
+                <option value={orgSlug}>Manter na empresa atual</option>
+                {movableOrgs.map((o) => (
+                  <option key={o.slug} value={o.slug}>
+                    Mover pra {o.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <Button type="submit" className="mt-1">
             Salvar alterações
           </Button>

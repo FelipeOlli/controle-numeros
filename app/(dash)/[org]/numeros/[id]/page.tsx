@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ClipboardCheck, ShieldAlert, History, Save } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth";
 import { requireOrg } from "@/lib/tenant";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
@@ -24,6 +25,11 @@ export default async function NumberDetailPage({
   const { org: orgSlug, id } = await params;
   const { org, role } = await requireOrg(orgSlug);
   const canManage = role === "OWNER" || role === "ADMIN";
+
+  const session = await auth();
+  const movableOrgs = (session?.memberships ?? [])
+    .filter((m) => m.orgSlug !== orgSlug && (m.role === "OWNER" || m.role === "ADMIN"))
+    .map((m) => ({ slug: m.orgSlug, name: m.orgName }));
 
   const number = await prisma.phoneNumber.findUnique({ where: { id } });
   if (!number || number.orgId !== org.id) {
@@ -61,6 +67,7 @@ export default async function NumberDetailPage({
               label={number.label}
               e164={number.e164}
               provider={number.provider}
+              movableOrgs={movableOrgs}
             />
             <DeleteNumberButton orgSlug={orgSlug} numberId={id} label={number.label} />
           </div>

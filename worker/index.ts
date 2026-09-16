@@ -49,12 +49,13 @@ async function markStaleNumbers() {
 
 /** Resumo diário por org: quantos números em cada status. */
 async function sendDailyDigest() {
-  const orgs = await prisma.organization.findMany({
-    include: { phoneNumbers: true, alertChannels: { where: { enabled: true } } },
-  });
+  const hasChannel = (await prisma.alertChannel.count({ where: { enabled: true } })) > 0;
+  if (!hasChannel) return; // Notificações é global agora — sem canal ativo, não há pra quem mandar.
+
+  const orgs = await prisma.organization.findMany({ include: { phoneNumbers: true } });
 
   for (const org of orgs) {
-    if (org.alertChannels.length === 0) continue;
+    if (org.phoneNumbers.length === 0) continue;
 
     const counts: Record<string, number> = {};
     for (const n of org.phoneNumbers) {
@@ -62,7 +63,7 @@ async function sendDailyDigest() {
     }
 
     console.log(`[worker] digest ${org.name}:`, counts);
-    // O envio efetivo do digest usa os mesmos canais de AlertChannel;
+    // O envio efetivo do digest usa os mesmos canais globais de AlertChannel;
     // fica como próximo passo natural ao lado dos coletores automáticos.
   }
 }

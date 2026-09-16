@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Smartphone, BellRing, Users } from "lucide-react";
+import { Smartphone } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export function NavLinks({ orgSlug }: { orgSlug: string }) {
@@ -10,8 +10,6 @@ export function NavLinks({ orgSlug }: { orgSlug: string }) {
 
   const links: { href: string; label: string; icon: LucideIcon }[] = [
     { href: `/${orgSlug}/numeros`, label: "Números", icon: Smartphone },
-    { href: `/${orgSlug}/alertas`, label: "Notificações", icon: BellRing },
-    { href: `/${orgSlug}/equipe`, label: "Equipe", icon: Users },
   ];
 
   return (

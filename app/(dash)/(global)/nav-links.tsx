@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Smartphone, Building2 } from "lucide-react";
+import { Smartphone, Building2, BellRing, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 const links: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/painel", label: "Números", icon: Smartphone },
   { href: "/empresas", label: "Empresas", icon: Building2 },
+  { href: "/notificacoes", label: "Notificações", icon: BellRing },
+  { href: "/equipe", label: "Equipe", icon: Users },
 ];
 
 export function GlobalNavLinks() {

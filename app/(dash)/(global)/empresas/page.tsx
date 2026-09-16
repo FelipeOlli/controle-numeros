@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { Building2, Plus, ArrowRight } from "lucide-react";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { createOrganization } from "./actions";
+import { EditOrgDialog } from "./edit-org-dialog";
+import { DeleteOrgDialog } from "./delete-org-dialog";
 
 const ROLE_LABELS: Record<string, string> = {
   OWNER: "Owner",
@@ -15,6 +18,15 @@ export default async function EmpresasPage() {
   const memberships = session!.memberships;
   const canCreate = memberships.some((m) => m.role === "OWNER");
 
+  const counts = await prisma.phoneNumber.groupBy({
+    by: ["orgId"],
+    where: { orgId: { in: memberships.map((m) => m.orgId) } },
+    _count: { _all: true },
+  });
+  const countByOrgId = new Map(counts.map((c) => [c.orgId, c._count._all]));
+
+  const ownedOrgs = memberships.filter((m) => m.role === "OWNER");
+
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -26,26 +38,48 @@ export default async function EmpresasPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {memberships.map((m) => (
-          <Link
-            key={m.orgId}
-            href={`/${m.orgSlug}/numeros`}
-            className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-          >
-            <div className="flex items-center justify-between">
-              <span className="flex h-9 w-9 items-center justify-center rounded-md bg-muted text-primary">
-                <Building2 size={17} />
-              </span>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                {ROLE_LABELS[m.role] ?? m.role}
-              </span>
+        {memberships.map((m) => {
+          const numberCount = countByOrgId.get(m.orgId) ?? 0;
+          return (
+            <div
+              key={m.orgId}
+              className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-sm transition hover:border-primary/40 hover:shadow-md"
+            >
+              <Link href={`/${m.orgSlug}/numeros`} className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-md bg-muted text-primary">
+                    <Building2 size={17} />
+                  </span>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                    {ROLE_LABELS[m.role] ?? m.role}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-medium text-foreground">{m.orgName}</span>
+                    <p className="text-xs text-muted-foreground">
+                      {numberCount} número{numberCount === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                  <ArrowRight size={15} className="text-muted-foreground" />
+                </div>
+              </Link>
+              {m.role === "OWNER" && (
+                <div className="flex gap-2 border-t border-border pt-3">
+                  <EditOrgDialog orgSlug={m.orgSlug} name={m.orgName} />
+                  <DeleteOrgDialog
+                    orgSlug={m.orgSlug}
+                    name={m.orgName}
+                    numberCount={numberCount}
+                    otherOrgs={ownedOrgs
+                      .filter((o) => o.orgId !== m.orgId)
+                      .map((o) => ({ slug: o.orgSlug, name: o.orgName }))}
+                  />
+                </div>
+              )}
             </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-foreground">{m.orgName}</span>
-              <ArrowRight size={15} className="text-muted-foreground" />
-            </div>
-          </Link>
-        ))}
+          );
+        })}
       </div>
 
       {canCreate && (
