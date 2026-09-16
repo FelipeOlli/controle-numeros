@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { requireOrg } from "@/lib/tenant";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
+import { ScoreRing } from "@/components/score-ring";
 import { createCheck } from "./actions";
 import { HealthChart } from "./health-chart";
 
@@ -52,7 +53,10 @@ export default async function NumberDetailPage({
           <h1 className="text-xl font-semibold tracking-tight">{number.label}</h1>
           <p className="font-mono text-sm text-muted-foreground">{number.e164}</p>
         </div>
-        <StatusBadge status={number.currentStatus} />
+        <div className="flex flex-col items-center gap-1">
+          <ScoreRing score={number.currentScore} status={number.currentStatus} size={64} />
+          <StatusBadge status={number.currentStatus} />
+        </div>
       </div>
 
       {checks.length > 1 && (

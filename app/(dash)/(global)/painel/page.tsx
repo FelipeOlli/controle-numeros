@@ -3,6 +3,8 @@ import { Inbox, LayoutGrid, Rows3, Building2 } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { StatusBadge } from "@/components/status-badge";
+import { ScoreRing } from "@/components/score-ring";
+import { StatusSummary } from "@/components/status-summary";
 import { PROVIDER_LABELS } from "@/lib/providers";
 
 const severity: Record<string, number> = {
@@ -62,6 +64,8 @@ export default async function PainelPage({
           {activeMemberships.length} empresa{activeMemberships.length === 1 ? "" : "s"}
         </p>
       </div>
+
+      <StatusSummary statuses={numbers.map((n) => n.currentStatus)} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
@@ -150,13 +154,15 @@ function NumberGrid({
         <Link
           key={n.id}
           href={`/${orgSlugById.get(n.orgId)}/numeros/${n.id}`}
-          className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+          className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
         >
           <div className="flex items-start justify-between gap-2">
-            <span className="font-medium text-foreground">{n.label}</span>
-            <StatusBadge status={n.currentStatus} />
+            <div>
+              <div className="font-medium text-foreground">{n.label}</div>
+              <div className="font-mono text-sm text-muted-foreground">{n.e164}</div>
+            </div>
+            <ScoreRing score={n.currentScore} status={n.currentStatus} />
           </div>
-          <span className="font-mono text-sm text-muted-foreground">{n.e164}</span>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Building2 size={12} />
             {orgNameById.get(n.orgId)}
@@ -165,7 +171,7 @@ function NumberGrid({
             <span className="rounded-full bg-muted px-2 py-0.5">
               {PROVIDER_LABELS[n.provider] ?? n.provider}
             </span>
-            <span className="font-mono">score {n.currentScore}</span>
+            <StatusBadge status={n.currentStatus} />
           </div>
         </Link>
       ))}
