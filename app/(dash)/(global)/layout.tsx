@@ -22,17 +22,19 @@ export default async function GlobalLayout({
   return (
     <div className="flex min-h-full flex-1 justify-center bg-shell min-[900px]:p-[18px]">
       <div className="flex min-h-full w-full max-w-[1280px] flex-col bg-canvas min-[900px]:rounded-[24px] min-[900px]:shadow-xl">
-        <header className="grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-4 min-[900px]:grid-cols-[1fr_auto_1fr] min-[900px]:px-6">
-          <Link href="/painel" className="flex items-center gap-2 justify-self-start">
+        <header className="flex items-center gap-3 px-5 py-4 min-[900px]:gap-4 min-[900px]:px-6">
+          <Link href="/painel" className="flex shrink-0 items-center gap-2">
             <span className="flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-accent text-accent-ink">
               <Radio size={15} strokeWidth={2.3} />
             </span>
             <span className="type-card-title-sm hidden sm:inline">Controle de Números</span>
           </Link>
 
-          <GlobalNavLinks />
+          <div className="flex min-w-0 flex-1 justify-center overflow-x-auto">
+            <GlobalNavLinks />
+          </div>
 
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex shrink-0 items-center justify-end gap-2">
             <Button
               type="button"
               variant="ghost"

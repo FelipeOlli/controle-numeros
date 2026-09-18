@@ -15,7 +15,7 @@ export function GlobalNavLinks() {
   const pathname = usePathname();
 
   return (
-    <nav className="type-nav hidden items-center justify-self-center gap-1.5 min-[900px]:flex">
+    <nav className="type-nav hidden shrink-0 items-center gap-1.5 min-[900px]:flex">
       {links.map((link) => {
         const active = pathname === link.href || (link.href === "/painel" && pathname === "/");
         return (

@@ -28,8 +28,8 @@ export default async function DashLayout({
   return (
     <div className="flex min-h-full flex-1 justify-center bg-shell min-[900px]:p-[18px]">
       <div className="flex min-h-full w-full max-w-[1280px] flex-col bg-canvas min-[900px]:rounded-[24px] min-[900px]:shadow-xl">
-        <header className="grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-4 min-[900px]:grid-cols-[1fr_auto_1fr] min-[900px]:px-6">
-          <div className="flex min-w-0 items-center gap-2 overflow-hidden justify-self-start type-nav">
+        <header className="flex items-center gap-3 px-5 py-4 min-[900px]:gap-4 min-[900px]:px-6">
+          <div className="flex min-w-0 shrink-0 items-center gap-2 overflow-hidden type-nav">
             <Link
               href="/painel"
               className="flex items-center gap-2 text-ink-2 transition hover:text-ink min-[900px]:hidden"
@@ -45,9 +45,11 @@ export default async function DashLayout({
             </span>
           </div>
 
-          <GlobalNavLinks />
+          <div className="flex min-w-0 flex-1 justify-center overflow-x-auto">
+            <GlobalNavLinks />
+          </div>
 
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex shrink-0 items-center justify-end gap-2">
             <OrgSwitcher current={orgSlug} orgs={session.memberships} />
             <ThemeToggle />
             <span className="hidden font-mono text-xs text-ink-3 min-[1100px]:inline">
