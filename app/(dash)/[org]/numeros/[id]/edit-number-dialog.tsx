@@ -11,8 +11,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { PROVIDER_LABELS } from "@/lib/providers";
+import { PlatformCheckboxes } from "@/components/platform-checkboxes";
+import { ORIGIN_LABELS } from "@/lib/providers";
 import { updateNumber } from "./actions";
+import type { NumberOrigin, NumberPlatform } from "@/generated/prisma/enums";
 
 const selectClass =
   "rounded-[14px] border border-line bg-canvas px-[14px] py-3 text-[15px] text-ink outline-none focus:border-accent focus:bg-surface";
@@ -22,7 +24,8 @@ export function EditNumberDialog({
   numberId,
   label,
   e164,
-  provider: initialProvider,
+  origin: initialOrigin,
+  platforms: initialPlatforms,
   externalId,
   providerToken,
   movableOrgs,
@@ -31,14 +34,16 @@ export function EditNumberDialog({
   numberId: string;
   label: string;
   e164: string;
-  provider: string;
+  origin: NumberOrigin;
+  platforms: NumberPlatform[];
   externalId: string | null;
   providerToken: string | null;
   /** Empresas (OWNER/ADMIN) pra onde este número pode ser movido, exceto a atual. */
   movableOrgs: { slug: string; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
-  const [provider, setProvider] = useState(initialProvider);
+  const [origin, setOrigin] = useState(initialOrigin);
+  const [platforms, setPlatforms] = useState(initialPlatforms);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -72,19 +77,20 @@ export function EditNumberDialog({
           <div className="flex flex-col gap-1.5">
             <label className="type-form-label text-ink-2">Origem</label>
             <select
-              name="provider"
-              value={provider}
-              onChange={(e) => setProvider(e.target.value)}
+              name="origin"
+              value={origin}
+              onChange={(e) => setOrigin(e.target.value as NumberOrigin)}
               className={selectClass}
             >
-              {Object.entries(PROVIDER_LABELS).map(([value, providerLabel]) => (
+              {Object.entries(ORIGIN_LABELS).map(([value, originLabel]) => (
                 <option key={value} value={value}>
-                  {providerLabel}
+                  {originLabel}
                 </option>
               ))}
             </select>
           </div>
-          {provider === "ZAPI" && (
+          <PlatformCheckboxes origin={origin} selected={platforms} onChange={setPlatforms} />
+          {platforms.includes("ZAPI") && (
             <>
               <div className="flex flex-col gap-1.5">
                 <label className="type-form-label text-ink-2">ID (Z-API)</label>

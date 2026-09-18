@@ -33,11 +33,31 @@ async function main() {
   });
 
   const samples = [
-    { label: "Iungo - Vendas 1", e164: "+5511900000001", provider: "IUNGO" as const },
-    { label: "Chip físico - Suporte", e164: "+5511900000002", provider: "CHIP_FISICO" as const },
-    { label: "Meta Cloud - Institucional", e164: "+5511900000003", provider: "META_CLOUD" as const },
-    { label: "Evolution - Disparo 1", e164: "+5511900000004", provider: "EVOLUTION" as const },
-    { label: "Z-API - Disparo 2", e164: "+5511900000005", provider: "ZAPI" as const },
+    { label: "Iungo - Vendas 1", e164: "+5511900000001", origin: "IUNGO" as const, platforms: [] },
+    {
+      label: "Chip físico - Suporte",
+      e164: "+5511900000002",
+      origin: "CHIP_FISICO" as const,
+      platforms: [],
+    },
+    {
+      label: "Meta Cloud - Institucional",
+      e164: "+5511900000003",
+      origin: "META_OFICIAL" as const,
+      platforms: ["META_CLOUD" as const],
+    },
+    {
+      label: "Evolution - Disparo 1",
+      e164: "+5511900000004",
+      origin: "CHIP_FISICO" as const,
+      platforms: ["EVOLUTION" as const],
+    },
+    {
+      label: "Z-API - Disparo 2",
+      e164: "+5511900000005",
+      origin: "CHIP_FISICO" as const,
+      platforms: ["ZAPI" as const],
+    },
   ];
 
   for (const s of samples) {

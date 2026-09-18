@@ -6,11 +6,17 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireOrg, requireRole, TenantError } from "@/lib/tenant";
 import { syncZapiForOrg, type ZapiSyncResult } from "@/lib/providers/zapi-sync";
+import { ORIGIN_LABELS, PLATFORM_LABELS, resolvePlatforms } from "@/lib/providers";
+import type { NumberOrigin, NumberPlatform } from "@/generated/prisma/enums";
+
+const originValues = Object.keys(ORIGIN_LABELS) as [NumberOrigin, ...NumberOrigin[]];
+const platformValues = Object.keys(PLATFORM_LABELS) as [NumberPlatform, ...NumberPlatform[]];
 
 const createSchema = z.object({
   label: z.string().min(1),
   e164: z.string().min(8),
-  provider: z.enum(["IUNGO", "CHIP_FISICO", "META_CLOUD", "EVOLUTION", "ZAPI"]),
+  origin: z.enum(originValues),
+  platforms: z.array(z.enum(platformValues)),
   externalId: z.string().optional(),
   providerToken: z.string().optional(),
 });
@@ -22,12 +28,19 @@ export async function createNumber(orgSlug: string, formData: FormData) {
   const data = createSchema.parse({
     label: formData.get("label"),
     e164: formData.get("e164"),
-    provider: formData.get("provider"),
+    origin: formData.get("origin"),
+    platforms: formData.getAll("platforms"),
     externalId: formData.get("externalId") || undefined,
     providerToken: formData.get("providerToken") || undefined,
   });
 
-  await prisma.phoneNumber.create({ data: { ...data, orgId: org.id } });
+  await prisma.phoneNumber.create({
+    data: {
+      ...data,
+      platforms: resolvePlatforms(data.origin, data.platforms),
+      orgId: org.id,
+    },
+  });
 
   revalidatePath(`/${orgSlug}/numeros`);
   revalidatePath("/painel");
@@ -51,8 +64,8 @@ export async function saveZapiCredential(orgSlug: string, formData: FormData) {
   });
 
   await prisma.providerCredential.upsert({
-    where: { orgId_provider: { orgId: org.id, provider: "ZAPI" } },
-    create: { orgId: org.id, provider: "ZAPI", config: { clientToken } },
+    where: { orgId_platform: { orgId: org.id, platform: "ZAPI" } },
+    create: { orgId: org.id, platform: "ZAPI", config: { clientToken } },
     update: { config: { clientToken } },
   });
 

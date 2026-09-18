@@ -3,9 +3,10 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { TriangleAlert, CircleAlert, CircleDashed } from "lucide-react";
-import { PROVIDER_LABELS } from "@/lib/providers";
+import { ORIGIN_LABELS, PLATFORM_LABELS } from "@/lib/providers";
 import { timeAgo } from "@/lib/format";
 import { StatusPill } from "@/components/status-pill";
+import type { NumberOrigin, NumberPlatform } from "@/generated/prisma/enums";
 
 export type AttentionItem = {
   id: string;
@@ -13,7 +14,8 @@ export type AttentionItem = {
   orgName: string;
   label: string;
   e164: string;
-  provider: string;
+  origin: NumberOrigin;
+  platforms: NumberPlatform[];
   status: "YELLOW" | "RED" | "BANNED" | "LOST" | "UNKNOWN";
   reason: string;
   lastCheckAt: Date | null;
@@ -100,8 +102,11 @@ export function AttentionQueue({ items }: { items: AttentionItem[] }) {
                 </div>
                 <p className="type-body-sm mt-0.5 text-ink-2">{item.reason}</p>
                 <p className="type-meta mt-1.5 text-ink-3">
-                  {item.orgName} · {PROVIDER_LABELS[item.provider] ?? item.provider} ·{" "}
-                  {item.lastCheckAt ? timeAgo(item.lastCheckAt) : "sem check"}
+                  {item.orgName} · {ORIGIN_LABELS[item.origin]}
+                  {item.platforms.length > 0
+                    ? ` (${item.platforms.map((p) => PLATFORM_LABELS[p]).join(", ")})`
+                    : ""}{" "}
+                  · {item.lastCheckAt ? timeAgo(item.lastCheckAt) : "sem check"}
                 </p>
               </div>
               <div className="flex flex-col items-end gap-2">

@@ -19,7 +19,7 @@ export interface ZapiSyncResult {
  */
 export async function syncZapiForOrg(orgId: string): Promise<ZapiSyncResult> {
   const credential = await prisma.providerCredential.findUnique({
-    where: { orgId_provider: { orgId, provider: "ZAPI" } },
+    where: { orgId_platform: { orgId, platform: "ZAPI" } },
   });
   const config = credential?.config as { clientToken?: string } | undefined;
   if (!config?.clientToken) {
@@ -29,7 +29,7 @@ export async function syncZapiForOrg(orgId: string): Promise<ZapiSyncResult> {
   const numbers = await prisma.phoneNumber.findMany({
     where: {
       orgId,
-      provider: "ZAPI",
+      platforms: { has: "ZAPI" },
       active: true,
       externalId: { not: null },
       providerToken: { not: null },
@@ -77,7 +77,7 @@ export async function syncZapiForOrg(orgId: string): Promise<ZapiSyncResult> {
 
 /** Roda syncZapiForOrg pra toda empresa com credencial Z-API configurada. */
 export async function syncAllZapiCredentials(): Promise<void> {
-  const credentials = await prisma.providerCredential.findMany({ where: { provider: "ZAPI" } });
+  const credentials = await prisma.providerCredential.findMany({ where: { platform: "ZAPI" } });
 
   for (const credential of credentials) {
     try {

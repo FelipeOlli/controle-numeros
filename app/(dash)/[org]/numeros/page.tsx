@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireOrg } from "@/lib/tenant";
 import { ScoreRing } from "@/components/score-ring";
 import { StatusPill } from "@/components/status-pill";
-import { PROVIDER_LABELS } from "@/lib/providers";
+import { ORIGIN_LABELS, PLATFORM_LABELS } from "@/lib/providers";
 import { AddNumberDialog } from "./add-number-dialog";
 import { ZapiCredentialForm } from "./zapi-credential-form";
 import type { HealthStatus } from "@/generated/prisma/enums";
@@ -47,7 +47,7 @@ export default async function NumerosPage({
 
   const zapiCredential = canManage
     ? await prisma.providerCredential.findUnique({
-        where: { orgId_provider: { orgId: org.id, provider: "ZAPI" } },
+        where: { orgId_platform: { orgId: org.id, platform: "ZAPI" } },
       })
     : null;
 
@@ -102,10 +102,17 @@ export default async function NumerosPage({
               </div>
               <ScoreRing score={n.currentScore} status={n.currentStatus} />
             </div>
-            <div className="flex items-center justify-between border-t border-line-2 pt-3">
-              <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
-                {PROVIDER_LABELS[n.provider] ?? n.provider}
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-2 pt-3">
+              <div className="flex flex-wrap gap-1.5">
+                <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
+                  {ORIGIN_LABELS[n.origin]}
+                </span>
+                {n.platforms.map((platform) => (
+                  <span key={platform} className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
+                    {PLATFORM_LABELS[platform]}
+                  </span>
+                ))}
+              </div>
               <StatusPill status={n.currentStatus} />
             </div>
           </Link>

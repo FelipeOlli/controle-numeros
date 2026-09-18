@@ -3,11 +3,17 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireOrg, requireRole } from "@/lib/tenant";
 import { handleApiError } from "@/lib/api";
+import { ORIGIN_LABELS, PLATFORM_LABELS, resolvePlatforms } from "@/lib/providers";
+import type { NumberOrigin, NumberPlatform } from "@/generated/prisma/enums";
+
+const originValues = Object.keys(ORIGIN_LABELS) as [NumberOrigin, ...NumberOrigin[]];
+const platformValues = Object.keys(PLATFORM_LABELS) as [NumberPlatform, ...NumberPlatform[]];
 
 const createSchema = z.object({
   label: z.string().min(1),
   e164: z.string().min(8),
-  provider: z.enum(["IUNGO", "CHIP_FISICO", "META_CLOUD", "EVOLUTION", "ZAPI"]),
+  origin: z.enum(originValues),
+  platforms: z.array(z.enum(platformValues)).optional().default([]),
   externalId: z.string().optional(),
   tier: z.string().optional(),
   notes: z.string().optional(),
@@ -44,7 +50,7 @@ export async function POST(
     const body = createSchema.parse(await req.json());
 
     const number = await prisma.phoneNumber.create({
-      data: { ...body, orgId: org.id },
+      data: { ...body, platforms: resolvePlatforms(body.origin, body.platforms), orgId: org.id },
     });
 
     return NextResponse.json({ number }, { status: 201 });

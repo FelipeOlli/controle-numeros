@@ -11,15 +11,18 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { PROVIDER_LABELS } from "@/lib/providers";
+import { PlatformCheckboxes } from "@/components/platform-checkboxes";
+import { ORIGIN_LABELS } from "@/lib/providers";
 import { createNumber } from "./actions";
+import type { NumberOrigin, NumberPlatform } from "@/generated/prisma/enums";
 
 const selectClass =
   "rounded-[14px] border border-line bg-canvas px-[14px] py-3 text-[15px] text-ink outline-none focus:border-accent focus:bg-surface";
 
 export function AddNumberDialog({ orgSlug }: { orgSlug: string }) {
   const [open, setOpen] = useState(false);
-  const [provider, setProvider] = useState<keyof typeof PROVIDER_LABELS>("IUNGO");
+  const [origin, setOrigin] = useState<NumberOrigin>("CHIP_FISICO");
+  const [platforms, setPlatforms] = useState<NumberPlatform[]>([]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -52,19 +55,20 @@ export function AddNumberDialog({ orgSlug }: { orgSlug: string }) {
           <div className="flex flex-col gap-1.5">
             <label className="type-form-label text-ink-2">Origem</label>
             <select
-              name="provider"
-              value={provider}
-              onChange={(e) => setProvider(e.target.value as keyof typeof PROVIDER_LABELS)}
+              name="origin"
+              value={origin}
+              onChange={(e) => setOrigin(e.target.value as NumberOrigin)}
               className={selectClass}
             >
-              {Object.entries(PROVIDER_LABELS).map(([value, label]) => (
+              {Object.entries(ORIGIN_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
               ))}
             </select>
           </div>
-          {provider === "ZAPI" && (
+          <PlatformCheckboxes origin={origin} selected={platforms} onChange={setPlatforms} />
+          {platforms.includes("ZAPI") && (
             <>
               <div className="flex flex-col gap-1.5">
                 <label className="type-form-label text-ink-2">ID (Z-API)</label>

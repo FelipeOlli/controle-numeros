@@ -7,6 +7,11 @@ import { prisma } from "@/lib/db";
 import { requireOrg, requireRole, TenantError } from "@/lib/tenant";
 import { recordHealthCheck } from "@/lib/checks";
 import { SELECTABLE_STATUSES } from "@/lib/health";
+import { ORIGIN_LABELS, PLATFORM_LABELS, resolvePlatforms } from "@/lib/providers";
+import type { NumberOrigin, NumberPlatform } from "@/generated/prisma/enums";
+
+const originValues = Object.keys(ORIGIN_LABELS) as [NumberOrigin, ...NumberOrigin[]];
+const platformValues = Object.keys(PLATFORM_LABELS) as [NumberPlatform, ...NumberPlatform[]];
 
 const checkSchema = z.object({
   status: z.enum(SELECTABLE_STATUSES),
@@ -16,7 +21,8 @@ const checkSchema = z.object({
 const updateSchema = z.object({
   label: z.string().min(1),
   e164: z.string().min(8),
-  provider: z.enum(["IUNGO", "CHIP_FISICO", "META_CLOUD", "EVOLUTION", "ZAPI"]),
+  origin: z.enum(originValues),
+  platforms: z.array(z.enum(platformValues)),
   externalId: z.string().optional(),
   providerToken: z.string().optional(),
   targetOrgSlug: z.string().optional(),
@@ -39,12 +45,14 @@ export async function updateNumber(orgSlug: string, numberId: string, formData: 
   const data = updateSchema.parse({
     label: formData.get("label"),
     e164: formData.get("e164"),
-    provider: formData.get("provider"),
+    origin: formData.get("origin"),
+    platforms: formData.getAll("platforms"),
     externalId: formData.get("externalId") || undefined,
     providerToken: formData.get("providerToken") || undefined,
     targetOrgSlug: formData.get("targetOrgSlug") || undefined,
   });
 
+  const platforms = resolvePlatforms(data.origin, data.platforms);
   const isMoving = data.targetOrgSlug && data.targetOrgSlug !== orgSlug;
 
   if (isMoving) {
@@ -63,7 +71,8 @@ export async function updateNumber(orgSlug: string, numberId: string, formData: 
       data: {
         label: data.label,
         e164: data.e164,
-        provider: data.provider,
+        origin: data.origin,
+        platforms,
         externalId: data.externalId,
         providerToken: data.providerToken,
         orgId: targetOrg.id,
@@ -81,7 +90,8 @@ export async function updateNumber(orgSlug: string, numberId: string, formData: 
     data: {
       label: data.label,
       e164: data.e164,
-      provider: data.provider,
+      origin: data.origin,
+      platforms,
       externalId: data.externalId,
       providerToken: data.providerToken,
     },

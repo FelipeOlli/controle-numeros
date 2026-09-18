@@ -8,7 +8,7 @@ import { requireOrg } from "@/lib/tenant";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/status-pill";
 import { SELECTABLE_STATUSES, STATUS_LABELS } from "@/lib/health";
-import { PROVIDER_LABELS } from "@/lib/providers";
+import { ORIGIN_LABELS, PLATFORM_LABELS } from "@/lib/providers";
 import { createCheck } from "./actions";
 import { HealthChart } from "./health-chart";
 import { DeleteNumberButton } from "./delete-number-button";
@@ -54,8 +54,10 @@ export default async function NumberDetailPage({
     .reverse()
     .map((c) => ({ date: c.createdAt.toISOString(), score: c.score, status: c.status }));
 
+  const isZapi = number.platforms.includes("ZAPI");
+
   let billingPill: ReactNode = null;
-  if (number.provider === "ZAPI" && number.providerDueAt) {
+  if (isZapi && number.providerDueAt) {
     const daysUntilDue = Math.ceil(
       (number.providerDueAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
     );
@@ -87,8 +89,13 @@ export default async function NumberDetailPage({
         <p className="font-mono text-[15px] text-ink-3">{number.e164}</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
-            {PROVIDER_LABELS[number.provider] ?? number.provider}
+            {ORIGIN_LABELS[number.origin]}
           </span>
+          {number.platforms.map((platform) => (
+            <span key={platform} className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
+              {PLATFORM_LABELS[platform]}
+            </span>
+          ))}
           <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">{org.name}</span>
           {billingPill}
         </div>
@@ -202,7 +209,7 @@ export default async function NumberDetailPage({
     </div>
   );
 
-  const billingCard = number.provider === "ZAPI" && canManage && (
+  const billingCard = isZapi && canManage && (
     <ZapiBillingForm
       orgSlug={orgSlug}
       numberId={id}
@@ -228,7 +235,8 @@ export default async function NumberDetailPage({
               numberId={id}
               label={number.label}
               e164={number.e164}
-              provider={number.provider}
+              origin={number.origin}
+              platforms={number.platforms}
               externalId={number.externalId}
               providerToken={number.providerToken}
               movableOrgs={movableOrgs}

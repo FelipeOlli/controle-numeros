@@ -4,8 +4,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ScoreRing } from "@/components/score-ring";
 import { StatusPill } from "@/components/status-pill";
-import { PROVIDER_LABELS } from "@/lib/providers";
-import type { HealthStatus } from "@/generated/prisma/enums";
+import { ORIGIN_LABELS, PLATFORM_LABELS } from "@/lib/providers";
+import type { HealthStatus, NumberOrigin, NumberPlatform } from "@/generated/prisma/enums";
 
 const SEVERITY: Record<HealthStatus, number> = {
   BANNED: 0,
@@ -138,7 +138,8 @@ function NumberGrid({
     orgId: string;
     label: string;
     e164: string;
-    provider: string;
+    origin: NumberOrigin;
+    platforms: NumberPlatform[];
     currentStatus: string;
     currentScore: number;
   }[];
@@ -164,10 +165,17 @@ function NumberGrid({
             <Building2 size={12} />
             {orgNameById.get(n.orgId)}
           </div>
-          <div className="flex items-center justify-between border-t border-line-2 pt-3">
-            <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
-              {PROVIDER_LABELS[n.provider] ?? n.provider}
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line-2 pt-3">
+            <div className="flex flex-wrap gap-1.5">
+              <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
+                {ORIGIN_LABELS[n.origin]}
+              </span>
+              {n.platforms.map((platform) => (
+                <span key={platform} className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
+                  {PLATFORM_LABELS[platform]}
+                </span>
+              ))}
+            </div>
             <StatusPill status={n.currentStatus} />
           </div>
         </Link>

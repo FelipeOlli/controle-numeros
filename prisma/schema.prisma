@@ -13,12 +13,23 @@ enum Role {
   VIEWER
 }
 
-enum Provider {
-  IUNGO
+/// Como o número foi adquirido. Diferente de NumberPlatform (onde ele roda) —
+/// ver comentário em PhoneNumber.origin.
+enum NumberOrigin {
   CHIP_FISICO
-  META_CLOUD
-  EVOLUTION
+  META_OFICIAL
+  NUMERO_VIRTUAL
+  IUNGO
+}
+
+/// Em quais plataformas o número está vinculado pra operar. Um número pode
+/// ter mais de uma (ex: chip no WhatsApp Business *e* vinculado ao Z-API).
+enum NumberPlatform {
+  WHATSAPP_NORMAL
+  WHATSAPP_BUSINESS
   ZAPI
+  EVOLUTION
+  META_CLOUD
 }
 
 enum HealthStatus {
@@ -99,7 +110,13 @@ model PhoneNumber {
   orgId         String
   label         String
   e164          String
-  provider      Provider
+  /// Como o número foi adquirido: chip físico, número oficial Meta, número
+  /// virtual genérico, ou já pronto na Iungo (essa não tem vínculo — vem
+  /// operacional).
+  origin        NumberOrigin
+  /// Em quais plataformas o número está vinculado pra operar de fato — vazio
+  /// pra origem IUNGO (não se aplica) ou pra número ainda sem vínculo.
+  platforms     NumberPlatform[]
   externalId    String?
   /// Token/segredo da instância no provedor (ex: TOKEN da instância Z-API,
   /// usado junto com externalId na URL da API). Não é a credencial da conta
@@ -192,13 +209,13 @@ model AlertLog {
 }
 
 model ProviderCredential {
-  id        String   @id @default(cuid())
+  id        String         @id @default(cuid())
   orgId     String
-  provider  Provider
+  platform  NumberPlatform
   config    Json
-  createdAt DateTime @default(now())
+  createdAt DateTime       @default(now())
 
   org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  @@unique([orgId, provider])
+  @@unique([orgId, platform])
 }
