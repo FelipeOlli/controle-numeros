@@ -17,6 +17,7 @@ const updateSchema = z.object({
   label: z.string().min(1),
   e164: z.string().min(8),
   provider: z.enum(["IUNGO", "CHIP_FISICO", "META_CLOUD", "EVOLUTION", "ZAPI"]),
+  externalId: z.string().optional(),
   targetOrgSlug: z.string().optional(),
 });
 
@@ -38,6 +39,7 @@ export async function updateNumber(orgSlug: string, numberId: string, formData: 
     label: formData.get("label"),
     e164: formData.get("e164"),
     provider: formData.get("provider"),
+    externalId: formData.get("externalId") || undefined,
     targetOrgSlug: formData.get("targetOrgSlug") || undefined,
   });
 
@@ -56,7 +58,13 @@ export async function updateNumber(orgSlug: string, numberId: string, formData: 
 
     await prisma.phoneNumber.update({
       where: { id: numberId },
-      data: { label: data.label, e164: data.e164, provider: data.provider, orgId: targetOrg.id },
+      data: {
+        label: data.label,
+        e164: data.e164,
+        provider: data.provider,
+        externalId: data.externalId,
+        orgId: targetOrg.id,
+      },
     });
 
     revalidatePath(`/${orgSlug}/numeros`);
@@ -67,7 +75,12 @@ export async function updateNumber(orgSlug: string, numberId: string, formData: 
 
   await prisma.phoneNumber.update({
     where: { id: numberId },
-    data: { label: data.label, e164: data.e164, provider: data.provider },
+    data: {
+      label: data.label,
+      e164: data.e164,
+      provider: data.provider,
+      externalId: data.externalId,
+    },
   });
 
   revalidatePath(`/${orgSlug}/numeros/${numberId}`);

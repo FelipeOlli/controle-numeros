@@ -6,6 +6,7 @@ import { ScoreRing } from "@/components/score-ring";
 import { StatusPill } from "@/components/status-pill";
 import { PROVIDER_LABELS } from "@/lib/providers";
 import { AddNumberDialog } from "./add-number-dialog";
+import { ZapiCredentialForm } from "./zapi-credential-form";
 import type { HealthStatus } from "@/generated/prisma/enums";
 
 const SEVERITY: Record<HealthStatus, number> = {
@@ -44,6 +45,12 @@ export default async function NumerosPage({
 
   const canManage = role === "OWNER" || role === "ADMIN";
 
+  const zapiCredential = canManage
+    ? await prisma.providerCredential.findUnique({
+        where: { orgId_provider: { orgId: org.id, provider: "ZAPI" } },
+      })
+    : null;
+
   return (
     <div className="flex flex-col gap-5 py-1">
       <div className="flex items-center justify-between gap-4">
@@ -71,6 +78,8 @@ export default async function NumerosPage({
           );
         })}
       </div>
+
+      {canManage && <ZapiCredentialForm orgSlug={orgSlug} configured={Boolean(zapiCredential)} />}
 
       {numbers.length === 0 && (
         <div className="flex flex-col items-center gap-2 rounded-[22px] border-[1.5px] border-dashed border-line-dashed bg-surface py-16 text-ink-3">

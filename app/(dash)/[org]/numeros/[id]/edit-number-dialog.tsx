@@ -22,7 +22,8 @@ export function EditNumberDialog({
   numberId,
   label,
   e164,
-  provider,
+  provider: initialProvider,
+  externalId,
   movableOrgs,
 }: {
   orgSlug: string;
@@ -30,10 +31,12 @@ export function EditNumberDialog({
   label: string;
   e164: string;
   provider: string;
+  externalId: string | null;
   /** Empresas (OWNER/ADMIN) pra onde este número pode ser movido, exceto a atual. */
   movableOrgs: { slug: string; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
+  const [provider, setProvider] = useState(initialProvider);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -66,7 +69,12 @@ export function EditNumberDialog({
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="type-form-label text-ink-2">Origem</label>
-            <select name="provider" defaultValue={provider} className={selectClass}>
+            <select
+              name="provider"
+              value={provider}
+              onChange={(e) => setProvider(e.target.value)}
+              className={selectClass}
+            >
               {Object.entries(PROVIDER_LABELS).map(([value, providerLabel]) => (
                 <option key={value} value={value}>
                   {providerLabel}
@@ -74,6 +82,17 @@ export function EditNumberDialog({
               ))}
             </select>
           </div>
+          {provider === "ZAPI" && (
+            <div className="flex flex-col gap-1.5">
+              <label className="type-form-label text-ink-2">Instance ID (Z-API)</label>
+              <Input
+                name="externalId"
+                defaultValue={externalId ?? ""}
+                className="font-mono"
+                placeholder="ID da instância"
+              />
+            </div>
+          )}
           {movableOrgs.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <label className="type-form-label text-ink-2">Empresa</label>

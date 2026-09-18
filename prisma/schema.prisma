@@ -105,6 +105,11 @@ model PhoneNumber {
   currentStatus HealthStatus @default(UNKNOWN)
   currentScore  Int          @default(0)
   lastCheckAt   DateTime?
+  /// Vencimento e status de pagamento da assinatura no provedor (ex: Z-API,
+  /// programa parceiro) — cache, não histórico. Nulo pra provedores/números
+  /// sem esse dado.
+  providerDueAt         DateTime?
+  providerPaymentStatus String?
   notes         String?
   active        Boolean      @default(true)
   createdAt     DateTime     @default(now())

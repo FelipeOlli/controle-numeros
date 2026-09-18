@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, ClipboardCheck, ShieldAlert, History } from "lucide-react";
 import { prisma } from "@/lib/db";
@@ -52,6 +53,32 @@ export default async function NumberDetailPage({
     .reverse()
     .map((c) => ({ date: c.createdAt.toISOString(), score: c.score, status: c.status }));
 
+  let billingPill: ReactNode = null;
+  if (number.provider === "ZAPI" && number.providerDueAt) {
+    const daysUntilDue = Math.ceil(
+      (number.providerDueAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+    );
+    const colorClass =
+      daysUntilDue <= 3
+        ? "bg-danger-soft text-danger-deep"
+        : daysUntilDue <= 10
+          ? "bg-warn-soft text-warn-deep"
+          : "bg-accent-soft text-accent-deep";
+    const label =
+      daysUntilDue < 0
+        ? `Vencido há ${Math.abs(daysUntilDue)} dia${Math.abs(daysUntilDue) === 1 ? "" : "s"}`
+        : daysUntilDue === 0
+          ? "Vence hoje"
+          : `Vence em ${daysUntilDue} dia${daysUntilDue === 1 ? "" : "s"}`;
+
+    billingPill = (
+      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${colorClass}`}>
+        {label}
+        {number.providerPaymentStatus ? ` · ${number.providerPaymentStatus}` : ""}
+      </span>
+    );
+  }
+
   const identityCard = (
     <div className="flex flex-col gap-4 rounded-[22px] bg-surface p-[22px_24px] min-[600px]:flex-row min-[600px]:items-start min-[600px]:justify-between">
       <div>
@@ -62,6 +89,7 @@ export default async function NumberDetailPage({
             {PROVIDER_LABELS[number.provider] ?? number.provider}
           </span>
           <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">{org.name}</span>
+          {billingPill}
         </div>
       </div>
       <div className="flex flex-col items-start gap-1.5 min-[600px]:items-end">
@@ -191,6 +219,7 @@ export default async function NumberDetailPage({
               label={number.label}
               e164={number.e164}
               provider={number.provider}
+              externalId={number.externalId}
               movableOrgs={movableOrgs}
             />
             <DeleteNumberButton orgSlug={orgSlug} numberId={id} label={number.label} />

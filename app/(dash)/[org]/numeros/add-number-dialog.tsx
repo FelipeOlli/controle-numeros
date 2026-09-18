@@ -19,6 +19,7 @@ const selectClass =
 
 export function AddNumberDialog({ orgSlug }: { orgSlug: string }) {
   const [open, setOpen] = useState(false);
+  const [provider, setProvider] = useState<keyof typeof PROVIDER_LABELS>("IUNGO");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -50,7 +51,12 @@ export function AddNumberDialog({ orgSlug }: { orgSlug: string }) {
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="type-form-label text-ink-2">Origem</label>
-            <select name="provider" className={selectClass}>
+            <select
+              name="provider"
+              value={provider}
+              onChange={(e) => setProvider(e.target.value as keyof typeof PROVIDER_LABELS)}
+              className={selectClass}
+            >
               {Object.entries(PROVIDER_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
@@ -58,6 +64,12 @@ export function AddNumberDialog({ orgSlug }: { orgSlug: string }) {
               ))}
             </select>
           </div>
+          {provider === "ZAPI" && (
+            <div className="flex flex-col gap-1.5">
+              <label className="type-form-label text-ink-2">Instance ID (Z-API)</label>
+              <Input name="externalId" className="font-mono" placeholder="ID da instância" />
+            </div>
+          )}
           <Button type="submit" variant="pill" size="pill" className="mt-1">
             <Plus size={16} />
             Adicionar número
