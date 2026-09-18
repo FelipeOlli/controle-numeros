@@ -29,7 +29,7 @@ export default async function DashLayout({
     <div className="flex min-h-full flex-1 justify-center bg-shell min-[900px]:p-[18px]">
       <div className="flex min-h-full w-full max-w-[1280px] flex-col bg-canvas min-[900px]:rounded-[24px] min-[900px]:shadow-xl">
         <header className="grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-4 min-[900px]:grid-cols-[1fr_auto_1fr] min-[900px]:px-6">
-          <div className="flex min-w-0 items-center gap-2 justify-self-start type-nav">
+          <div className="flex min-w-0 items-center gap-2 overflow-hidden justify-self-start type-nav">
             <Link
               href="/painel"
               className="flex items-center gap-2 text-ink-2 transition hover:text-ink min-[900px]:hidden"
@@ -37,17 +37,12 @@ export default async function DashLayout({
             >
               <ChevronLeft size={18} />
             </Link>
-            <Link
-              href="/painel"
-              className="hidden items-center gap-2 text-ink-2 transition hover:text-ink min-[900px]:flex"
-            >
-              <span className="flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-accent text-accent-ink">
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-lg bg-accent text-accent-ink">
                 <Radio size={15} strokeWidth={2.3} />
               </span>
-              Painel
-            </Link>
-            <span className="hidden text-ink-3 min-[900px]:inline">/</span>
-            <span className="truncate font-bold text-ink">{membership.orgName}</span>
+              <span className="max-w-[160px] truncate font-bold text-ink">{membership.orgName}</span>
+            </span>
           </div>
 
           <GlobalNavLinks />
