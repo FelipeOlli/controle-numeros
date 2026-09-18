@@ -1,10 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
-import { KeyRound } from "lucide-react";
+import { useState, useTransition } from "react";
+import { KeyRound, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { saveZapiCredential } from "./actions";
+import { saveZapiCredential, syncZapiNow } from "./actions";
 
 /**
  * Salva o Partner-Token da conta Z-API. Nunca reexibe o valor salvo — só
@@ -17,7 +17,9 @@ export function ZapiCredentialForm({
   orgSlug: string;
   configured: boolean;
 }) {
-  const [pending, startTransition] = useTransition();
+  const [savePending, startSave] = useTransition();
+  const [syncPending, startSync] = useTransition();
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-3 rounded-[22px] bg-surface p-[22px_24px]">
@@ -34,8 +36,9 @@ export function ZapiCredentialForm({
           </span>
         </div>
       </div>
+
       <form
-        action={(formData) => startTransition(() => saveZapiCredential(orgSlug, formData))}
+        action={(formData) => startSave(() => saveZapiCredential(orgSlug, formData))}
         className="flex flex-col gap-2.5 min-[600px]:flex-row"
       >
         <Input
@@ -45,10 +48,36 @@ export function ZapiCredentialForm({
           placeholder={configured ? "•••••••••••••• (trocar)" : "Partner-Token"}
           className="flex-1"
         />
-        <Button type="submit" variant="pill" size="pill-sm" disabled={pending}>
+        <Button type="submit" variant="pill" size="pill-sm" disabled={savePending}>
           Salvar
         </Button>
       </form>
+
+      {configured && (
+        <div className="flex flex-wrap items-center gap-2.5 border-t border-line-2 pt-3">
+          <Button
+            type="button"
+            variant="pill-ghost"
+            size="pill-sm"
+            disabled={syncPending}
+            onClick={() =>
+              startSync(async () => {
+                setSyncMessage(null);
+                const result = await syncZapiNow(orgSlug);
+                setSyncMessage(
+                  result.error
+                    ? result.error
+                    : `${result.updated}/${result.checked} número(s) casado(s) · ${result.statusChanged} mudou(ram) de status`,
+                );
+              })
+            }
+          >
+            <RefreshCw size={13} className={syncPending ? "animate-spin" : undefined} />
+            Sincronizar agora
+          </Button>
+          {syncMessage && <span className="type-meta text-ink-3">{syncMessage}</span>}
+        </div>
+      )}
     </div>
   );
 }

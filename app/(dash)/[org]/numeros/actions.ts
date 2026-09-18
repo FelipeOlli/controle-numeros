@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireOrg, requireRole, TenantError } from "@/lib/tenant";
+import { syncZapiForOrg, type ZapiSyncResult } from "@/lib/providers/zapi-sync";
 
 const createSchema = z.object({
   label: z.string().min(1),
@@ -54,6 +55,20 @@ export async function saveZapiCredential(orgSlug: string, formData: FormData) {
   });
 
   revalidatePath(`/${orgSlug}/numeros`);
+}
+
+/** Botão "Sincronizar agora" — mesma sincronização do worker, sob demanda. */
+export async function syncZapiNow(orgSlug: string): Promise<ZapiSyncResult> {
+  const { org, role } = await requireOrg(orgSlug);
+  requireRole(role, ["OWNER", "ADMIN"]);
+
+  const result = await syncZapiForOrg(org.id);
+
+  revalidatePath(`/${orgSlug}/numeros`);
+  revalidatePath("/[org]/numeros/[id]", "page");
+  revalidatePath("/painel");
+
+  return result;
 }
 
 export async function deleteNumber(orgSlug: string, numberId: string) {
