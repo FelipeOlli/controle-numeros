@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Radio, LogOut, ChevronLeft } from "lucide-react";
 import { auth, signOut } from "@/lib/auth";
 import { OrgSwitcher } from "./org-switcher";
-import { NavLinks } from "./nav-links";
+import { GlobalNavLinks } from "../(global)/nav-links";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MobileTabbar } from "@/components/mobile-tabbar";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,7 @@ export default async function DashLayout({
             <span className="truncate font-bold text-ink">{membership.orgName}</span>
           </div>
 
-          <NavLinks orgSlug={orgSlug} />
+          <GlobalNavLinks />
 
           <div className="flex items-center justify-end gap-2">
             <OrgSwitcher current={orgSlug} orgs={session.memberships} />
