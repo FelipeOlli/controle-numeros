@@ -18,15 +18,15 @@ export const PLATFORM_LABELS: Record<NumberPlatform, string> = {
 };
 
 /**
- * Origem decide o vínculo em dois casos: Iungo já vem operacional (sem
- * vínculo) e Meta oficial só roda via Meta Cloud API. Fora isso, o vínculo é
- * livre (um número pode estar em mais de uma plataforma ao mesmo tempo).
+ * Só a origem Meta oficial força o vínculo (sempre Meta Cloud API). Todas as
+ * outras origens — chip físico, número virtual e Iungo — têm as mesmas
+ * opções de vínculo livres (um número pode estar em mais de uma plataforma
+ * ao mesmo tempo).
  */
 export function resolvePlatforms(
   origin: NumberOrigin,
   submitted: NumberPlatform[],
 ): NumberPlatform[] {
-  if (origin === "IUNGO") return [];
   if (origin === "META_OFICIAL") return ["META_CLOUD"];
   return submitted;
 }

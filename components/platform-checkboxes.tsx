@@ -5,10 +5,10 @@ import type { NumberOrigin, NumberPlatform } from "@/generated/prisma/enums";
 
 /**
  * Checkboxes de vínculo — um número pode estar em mais de uma plataforma ao
- * mesmo tempo (ex: chip no WhatsApp Business *e* vinculado ao Z-API).
- * Some pra Iungo (já vem pronta) e fica fixo em Meta Cloud API pra origem
- * Meta oficial — mesma regra de app/(dash)/[org]/numeros/actions.ts
- * (resolvePlatforms, em lib/providers.ts).
+ * mesmo tempo (ex: chip no WhatsApp Business *e* vinculado ao Z-API). Fica
+ * fixo em Meta Cloud API só pra origem Meta oficial — as demais origens
+ * (chip físico, número virtual, Iungo) têm as mesmas opções livres. Mesma
+ * regra de lib/providers.ts (resolvePlatforms).
  */
 export function PlatformCheckboxes({
   origin,
@@ -19,8 +19,6 @@ export function PlatformCheckboxes({
   selected: NumberPlatform[];
   onChange: (platforms: NumberPlatform[]) => void;
 }) {
-  if (origin === "IUNGO") return null;
-
   if (origin === "META_OFICIAL") {
     return (
       <div className="flex flex-col gap-1.5">
