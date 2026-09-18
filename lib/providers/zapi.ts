@@ -1,66 +1,41 @@
 const ZAPI_BASE_URL = "https://api.z-api.io";
-const PAGE_SIZE = 100;
 
-export interface ZapiInstance {
-  id: string;
-  due: number | null;
-  paymentStatus: string | null;
-  phoneConnected: boolean;
-  whatsappConnected: boolean;
-}
-
-interface ZapiInstancesPage {
-  totalPage: number;
-  page: number;
-  content: {
-    id: string;
-    due: number | null;
-    paymentStatus: string | null;
-    phoneConnected: boolean;
-    whatsappConnected: boolean;
-  }[];
+export interface ZapiInstanceStatus {
+  connected: boolean;
+  smartphoneConnected: boolean;
+  error?: string;
 }
 
 /**
- * Lista todas as instâncias da conta parceiro Z-API, paginando até o fim.
- * Único endpoint que devolve conexão + pagamento + vencimento numa chamada
- * (programa "Parceiro Integrador" — token de conta, não o Client-Token de
- * instância).
+ * Status de conexão de uma instância — conta "Cliente" padrão do Z-API,
+ * autenticada pelo Client-Token da conta (não pelo Partner-Token, que exige
+ * o programa "Parceiro Integrador" e essa conta não tem acesso a ele).
+ * Não devolve pagamento nem vencimento — isso só existe no painel web do
+ * Z-API pra contas Cliente, sem endpoint correspondente.
  */
-export async function fetchZapiPartnerInstances(partnerToken: string): Promise<ZapiInstance[]> {
-  const instances: ZapiInstance[] = [];
-  let page = 1;
-  let totalPage = 1;
-
-  do {
-    const res = await fetch(
-      `${ZAPI_BASE_URL}/instances?page=${page}&pageSize=${PAGE_SIZE}`,
-      {
-        headers: {
-          Authorization: `Bearer ${partnerToken}`,
-          "Content-Type": "application/json",
-        },
+export async function fetchZapiInstanceStatus(
+  instanceId: string,
+  instanceToken: string,
+  clientToken: string,
+): Promise<ZapiInstanceStatus> {
+  const res = await fetch(
+    `${ZAPI_BASE_URL}/instances/${instanceId}/token/${instanceToken}/status`,
+    {
+      headers: {
+        "Client-Token": clientToken,
+        "Content-Type": "application/json",
       },
-    );
+    },
+  );
 
-    if (!res.ok) {
-      throw new Error(`Z-API respondeu ${res.status} ao listar instâncias (página ${page})`);
-    }
+  if (!res.ok) {
+    throw new Error(`Z-API respondeu ${res.status} ao consultar status da instância`);
+  }
 
-    const data = (await res.json()) as ZapiInstancesPage;
-    for (const item of data.content) {
-      instances.push({
-        id: item.id,
-        due: item.due ?? null,
-        paymentStatus: item.paymentStatus ?? null,
-        phoneConnected: Boolean(item.phoneConnected),
-        whatsappConnected: Boolean(item.whatsappConnected),
-      });
-    }
-
-    totalPage = data.totalPage;
-    page += 1;
-  } while (page <= totalPage);
-
-  return instances;
+  const data = (await res.json()) as ZapiInstanceStatus;
+  return {
+    connected: Boolean(data.connected),
+    smartphoneConnected: Boolean(data.smartphoneConnected),
+    error: data.error,
+  };
 }

@@ -13,6 +13,7 @@ import { createCheck } from "./actions";
 import { HealthChart } from "./health-chart";
 import { DeleteNumberButton } from "./delete-number-button";
 import { EditNumberDialog } from "./edit-number-dialog";
+import { ZapiBillingForm } from "./zapi-billing-form";
 
 const selectClass =
   "w-full rounded-[14px] border border-line bg-canvas px-[14px] py-3 text-[15px] text-ink outline-none focus:border-accent focus:bg-surface";
@@ -201,6 +202,15 @@ export default async function NumberDetailPage({
     </div>
   );
 
+  const billingCard = number.provider === "ZAPI" && canManage && (
+    <ZapiBillingForm
+      orgSlug={orgSlug}
+      numberId={id}
+      providerDueAt={number.providerDueAt}
+      providerPaymentStatus={number.providerPaymentStatus}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-4 py-1">
       <div className="flex items-center justify-between gap-3">
@@ -220,6 +230,7 @@ export default async function NumberDetailPage({
               e164={number.e164}
               provider={number.provider}
               externalId={number.externalId}
+              providerToken={number.providerToken}
               movableOrgs={movableOrgs}
             />
             <DeleteNumberButton orgSlug={orgSlug} numberId={id} label={number.label} />
@@ -230,6 +241,7 @@ export default async function NumberDetailPage({
       <div className="flex flex-col gap-4 min-[900px]:hidden">
         {identityCard}
         {registerCheckCard}
+        {billingCard}
         {scoreHistoryCard}
         {incidentsCard}
         {checksHistoryCard}
@@ -243,6 +255,7 @@ export default async function NumberDetailPage({
         </div>
         <div className="flex flex-col gap-4">
           {registerCheckCard}
+          {billingCard}
           {incidentsCard}
         </div>
       </div>

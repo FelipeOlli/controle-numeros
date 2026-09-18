@@ -18,6 +18,7 @@ const updateSchema = z.object({
   e164: z.string().min(8),
   provider: z.enum(["IUNGO", "CHIP_FISICO", "META_CLOUD", "EVOLUTION", "ZAPI"]),
   externalId: z.string().optional(),
+  providerToken: z.string().optional(),
   targetOrgSlug: z.string().optional(),
 });
 
@@ -40,6 +41,7 @@ export async function updateNumber(orgSlug: string, numberId: string, formData: 
     e164: formData.get("e164"),
     provider: formData.get("provider"),
     externalId: formData.get("externalId") || undefined,
+    providerToken: formData.get("providerToken") || undefined,
     targetOrgSlug: formData.get("targetOrgSlug") || undefined,
   });
 
@@ -63,6 +65,7 @@ export async function updateNumber(orgSlug: string, numberId: string, formData: 
         e164: data.e164,
         provider: data.provider,
         externalId: data.externalId,
+        providerToken: data.providerToken,
         orgId: targetOrg.id,
       },
     });
@@ -80,12 +83,47 @@ export async function updateNumber(orgSlug: string, numberId: string, formData: 
       e164: data.e164,
       provider: data.provider,
       externalId: data.externalId,
+      providerToken: data.providerToken,
     },
   });
 
   revalidatePath(`/${orgSlug}/numeros/${numberId}`);
   revalidatePath(`/${orgSlug}/numeros`);
   revalidatePath("/painel");
+}
+
+const billingSchema = z.object({
+  providerDueAt: z.string().optional(),
+  providerPaymentStatus: z.string().optional(),
+});
+
+/**
+ * Vencimento e status de pagamento não têm endpoint na conta Z-API
+ * "Cliente" — só existem no painel web deles. Atualizado manualmente aqui.
+ */
+export async function updateZapiBilling(orgSlug: string, numberId: string, formData: FormData) {
+  const { org, role } = await requireOrg(orgSlug);
+  requireRole(role, ["OWNER", "ADMIN"]);
+
+  const number = await prisma.phoneNumber.findUnique({ where: { id: numberId } });
+  if (!number || number.orgId !== org.id) {
+    throw new TenantError("Número não encontrado", 404);
+  }
+
+  const data = billingSchema.parse({
+    providerDueAt: formData.get("providerDueAt") || undefined,
+    providerPaymentStatus: formData.get("providerPaymentStatus") || undefined,
+  });
+
+  await prisma.phoneNumber.update({
+    where: { id: numberId },
+    data: {
+      providerDueAt: data.providerDueAt ? new Date(data.providerDueAt) : null,
+      providerPaymentStatus: data.providerPaymentStatus ?? null,
+    },
+  });
+
+  revalidatePath(`/${orgSlug}/numeros/${numberId}`);
 }
 
 export async function createCheck(orgSlug: string, numberId: string, formData: FormData) {

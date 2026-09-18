@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { saveZapiCredential, syncZapiNow } from "./actions";
 
 /**
- * Salva o Partner-Token da conta Z-API. Nunca reexibe o valor salvo — só
+ * Salva o Client-Token da conta Z-API (aba Segurança → "Token de segurança
+ * da conta", ex: app.z-api.io/security). Nunca reexibe o valor salvo — só
  * mostra se já está configurado, igual qualquer campo de senha.
  */
 export function ZapiCredentialForm({
@@ -31,8 +32,8 @@ export function ZapiCredentialForm({
           <span className="type-card-title-sm block">Integração Z-API</span>
           <span className="type-meta text-ink-3">
             {configured
-              ? "Partner-Token configurado — sincroniza conexão, pagamento e vencimento."
-              : "Cole o Partner-Token (programa Parceiro Integrador) pra sincronizar automaticamente."}
+              ? "Client-Token configurado — sincroniza o status de conexão de cada número."
+              : "Cole o Client-Token da conta (Z-API → Segurança → \"Token de segurança da conta\")."}
           </span>
         </div>
       </div>
@@ -42,10 +43,10 @@ export function ZapiCredentialForm({
         className="flex flex-col gap-2.5 min-[600px]:flex-row"
       >
         <Input
-          name="partnerToken"
+          name="clientToken"
           type="password"
           required
-          placeholder={configured ? "•••••••••••••• (trocar)" : "Partner-Token"}
+          placeholder={configured ? "•••••••••••••• (trocar)" : "Client-Token"}
           className="flex-1"
         />
         <Button type="submit" variant="pill" size="pill-sm" disabled={savePending}>
@@ -67,7 +68,7 @@ export function ZapiCredentialForm({
                 setSyncMessage(
                   result.error
                     ? result.error
-                    : `${result.updated}/${result.checked} número(s) casado(s) · ${result.statusChanged} mudou(ram) de status`,
+                    : `${result.checked} número(s) verificado(s) · ${result.statusChanged} mudou(ram) de status`,
                 );
               })
             }

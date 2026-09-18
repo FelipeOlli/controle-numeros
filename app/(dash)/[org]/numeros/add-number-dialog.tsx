@@ -65,10 +65,20 @@ export function AddNumberDialog({ orgSlug }: { orgSlug: string }) {
             </select>
           </div>
           {provider === "ZAPI" && (
-            <div className="flex flex-col gap-1.5">
-              <label className="type-form-label text-ink-2">Instance ID (Z-API)</label>
-              <Input name="externalId" className="font-mono" placeholder="ID da instância" />
-            </div>
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label className="type-form-label text-ink-2">ID (Z-API)</label>
+                <Input name="externalId" className="font-mono" placeholder="coluna ID no painel Z-API" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="type-form-label text-ink-2">Token (Z-API)</label>
+                <Input
+                  name="providerToken"
+                  className="font-mono"
+                  placeholder="coluna TOKEN no painel Z-API"
+                />
+              </div>
+            </>
           )}
           <Button type="submit" variant="pill" size="pill" className="mt-1">
             <Plus size={16} />

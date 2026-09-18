@@ -1,78 +1,78 @@
 import { prisma } from "@/lib/db";
 import { recordHealthCheck } from "@/lib/checks";
-import { fetchZapiPartnerInstances } from "./zapi";
+import { fetchZapiInstanceStatus } from "./zapi";
 import type { HealthStatus } from "@/generated/prisma/enums";
 
 export interface ZapiSyncResult {
   checked: number;
-  updated: number;
   statusChanged: number;
   error?: string;
 }
 
 /**
- * Sincroniza os números Z-API de uma empresa: busca a listagem de parceiro,
- * casa por externalId, atualiza o cache de vencimento/pagamento sempre, e
+ * Sincroniza a conexão dos números Z-API de uma empresa: consulta o status
+ * de cada instância com o Client-Token da conta + o token de cada número, e
  * só grava HealthCheck (via lib/checks.ts, dona da regra) quando o status
- * de conexão muda de fato. Usada pelo worker (cron) e pelo botão "Sincronizar
- * agora" na UI — mesma função, sem duplicar lógica.
+ * de conexão muda de fato. Vencimento e pagamento não têm endpoint nessa
+ * conta — não são tocados aqui, ficam manuais. Usada pelo worker (cron) e
+ * pelo botão "Sincronizar agora" na UI — mesma função, sem duplicar lógica.
  */
 export async function syncZapiForOrg(orgId: string): Promise<ZapiSyncResult> {
   const credential = await prisma.providerCredential.findUnique({
     where: { orgId_provider: { orgId, provider: "ZAPI" } },
   });
-  const config = credential?.config as { partnerToken?: string } | undefined;
-  if (!config?.partnerToken) {
-    return { checked: 0, updated: 0, statusChanged: 0, error: "Nenhum Partner-Token configurado." };
+  const config = credential?.config as { clientToken?: string } | undefined;
+  if (!config?.clientToken) {
+    return { checked: 0, statusChanged: 0, error: "Nenhum Client-Token configurado." };
   }
-
-  let instances;
-  try {
-    instances = await fetchZapiPartnerInstances(config.partnerToken);
-  } catch (err) {
-    return {
-      checked: 0,
-      updated: 0,
-      statusChanged: 0,
-      error: err instanceof Error ? err.message : "Falha ao consultar a API do Z-API.",
-    };
-  }
-  const instanceById = new Map(instances.map((i) => [i.id, i]));
 
   const numbers = await prisma.phoneNumber.findMany({
-    where: { orgId, provider: "ZAPI", active: true, externalId: { not: null } },
+    where: {
+      orgId,
+      provider: "ZAPI",
+      active: true,
+      externalId: { not: null },
+      providerToken: { not: null },
+    },
   });
 
-  let updated = 0;
+  let checked = 0;
   let statusChanged = 0;
+  const errors: string[] = [];
 
   for (const number of numbers) {
-    const instance = instanceById.get(number.externalId!);
-    if (!instance) continue;
-    updated += 1;
+    try {
+      const instanceStatus = await fetchZapiInstanceStatus(
+        number.externalId!,
+        number.providerToken!,
+        config.clientToken,
+      );
+      checked += 1;
 
-    await prisma.phoneNumber.update({
-      where: { id: number.id },
-      data: {
-        providerDueAt: instance.due ? new Date(instance.due) : null,
-        providerPaymentStatus: instance.paymentStatus,
-      },
-    });
+      const status: HealthStatus = instanceStatus.connected ? "GREEN" : "RED";
+      if (status === number.currentStatus) continue;
 
-    const status: HealthStatus = instance.phoneConnected && instance.whatsappConnected ? "GREEN" : "RED";
-    if (status === number.currentStatus) continue;
-
-    statusChanged += 1;
-    await recordHealthCheck({
-      orgId,
-      phoneNumberId: number.id,
-      source: "API",
-      status,
-      observation: status === "RED" ? "Instância desconectada no Z-API" : undefined,
-    });
+      statusChanged += 1;
+      await recordHealthCheck({
+        orgId,
+        phoneNumberId: number.id,
+        source: "API",
+        status,
+        observation:
+          status === "RED"
+            ? instanceStatus.error ?? "Instância desconectada no Z-API"
+            : undefined,
+      });
+    } catch (err) {
+      errors.push(`${number.label}: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
-  return { checked: numbers.length, updated, statusChanged };
+  return {
+    checked,
+    statusChanged,
+    error: errors.length ? errors.join(" · ") : undefined,
+  };
 }
 
 /** Roda syncZapiForOrg pra toda empresa com credencial Z-API configurada. */
@@ -86,7 +86,7 @@ export async function syncAllZapiCredentials(): Promise<void> {
         console.error(`[zapi-sync] org ${credential.orgId}: ${result.error}`);
       } else {
         console.log(
-          `[zapi-sync] org ${credential.orgId}: ${result.updated}/${result.checked} atualizados, ${result.statusChanged} mudaram de status`,
+          `[zapi-sync] org ${credential.orgId}: ${result.checked} verificados, ${result.statusChanged} mudaram de status`,
         );
       }
     } catch (err) {

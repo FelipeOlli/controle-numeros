@@ -24,6 +24,7 @@ export function EditNumberDialog({
   e164,
   provider: initialProvider,
   externalId,
+  providerToken,
   movableOrgs,
 }: {
   orgSlug: string;
@@ -32,6 +33,7 @@ export function EditNumberDialog({
   e164: string;
   provider: string;
   externalId: string | null;
+  providerToken: string | null;
   /** Empresas (OWNER/ADMIN) pra onde este número pode ser movido, exceto a atual. */
   movableOrgs: { slug: string; name: string }[];
 }) {
@@ -83,15 +85,26 @@ export function EditNumberDialog({
             </select>
           </div>
           {provider === "ZAPI" && (
-            <div className="flex flex-col gap-1.5">
-              <label className="type-form-label text-ink-2">Instance ID (Z-API)</label>
-              <Input
-                name="externalId"
-                defaultValue={externalId ?? ""}
-                className="font-mono"
-                placeholder="ID da instância"
-              />
-            </div>
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label className="type-form-label text-ink-2">ID (Z-API)</label>
+                <Input
+                  name="externalId"
+                  defaultValue={externalId ?? ""}
+                  className="font-mono"
+                  placeholder="coluna ID no painel Z-API"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="type-form-label text-ink-2">Token (Z-API)</label>
+                <Input
+                  name="providerToken"
+                  defaultValue={providerToken ?? ""}
+                  className="font-mono"
+                  placeholder="coluna TOKEN no painel Z-API"
+                />
+              </div>
+            </>
           )}
           {movableOrgs.length > 0 && (
             <div className="flex flex-col gap-1.5">

@@ -101,13 +101,17 @@ model PhoneNumber {
   e164          String
   provider      Provider
   externalId    String?
+  /// Token/segredo da instância no provedor (ex: TOKEN da instância Z-API,
+  /// usado junto com externalId na URL da API). Não é a credencial da conta
+  /// (essa fica em ProviderCredential) — é por número.
+  providerToken String?
   tier          String?
   currentStatus HealthStatus @default(UNKNOWN)
   currentScore  Int          @default(0)
   lastCheckAt   DateTime?
-  /// Vencimento e status de pagamento da assinatura no provedor (ex: Z-API,
-  /// programa parceiro) — cache, não histórico. Nulo pra provedores/números
-  /// sem esse dado.
+  /// Vencimento e status de pagamento da assinatura no provedor. Sem
+  /// endpoint pra isso nas contas Z-API "Cliente" — preenchido manualmente
+  /// (cache, não histórico). Nulo pra provedores/números sem esse dado.
   providerDueAt         DateTime?
   providerPaymentStatus String?
   notes         String?
