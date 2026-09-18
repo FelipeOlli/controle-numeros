@@ -122,7 +122,7 @@ export default async function PainelPage() {
         Confirme manualmente a situação de um número e o histórico é atualizado na hora.
       </span>
       <Link
-        href={addNumberHref}
+        href="/numeros"
         className="relative w-fit rounded-full bg-white px-[22px] py-[11px] text-sm font-bold text-accent-deep"
       >
         Abrir formulário
