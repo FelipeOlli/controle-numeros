@@ -2,6 +2,8 @@
 
 import { useTransition } from "react";
 import { Plus, X } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 import { changeRole, removeMember, addAccess, setUserNotify } from "./actions";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -11,7 +13,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const selectClass =
-  "rounded-md border border-border bg-muted px-2 py-1 text-xs text-foreground outline-none focus:ring-2 focus:ring-ring";
+  "rounded-full border border-line bg-canvas px-3 py-1.5 text-xs text-ink outline-none focus:border-accent";
 
 interface Access {
   membershipId: string;
@@ -43,44 +45,42 @@ export function MemberCard({
   const addableOrgs = availableOrgs.filter((o) => !grantedSlugs.has(o.slug));
 
   return (
-    <li className="flex flex-col gap-3 rounded-md border border-border bg-card p-3.5 text-sm shadow-sm">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium uppercase text-foreground">
-            {(name || email).slice(0, 2)}
-          </span>
-          <div>
-            <div className="text-foreground">{name || email}</div>
-            {name && <div className="text-xs text-muted-foreground">{email}</div>}
+    <div className="flex flex-col gap-3 rounded-[18px] bg-row px-4 py-3.5 text-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar className="h-10 w-10">
+            <AvatarFallback className="bg-avatar-bg text-[13px] font-bold text-avatar-ink">
+              {(name || email).slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <div className="truncate font-semibold text-ink">{name || email}</div>
+            {name && <div className="truncate text-xs text-ink-3">{email}</div>}
           </div>
         </div>
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <input
-            type="checkbox"
-            defaultChecked={notifyEnabled}
+        <label className="flex items-center gap-2 text-xs text-ink-3">
+          <span className="hidden min-[500px]:inline">Notificar</span>
+          <Switch
+            checked={notifyEnabled}
             disabled={pending}
-            className="accent-primary"
-            onChange={(e) => startTransition(() => setUserNotify(userId, e.target.checked))}
+            onCheckedChange={(checked) => startTransition(() => setUserNotify(userId, checked))}
           />
-          Notificar por e-mail
         </label>
       </div>
 
-      <ul className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5">
         {access.map((a) => (
-          <li
+          <div
             key={a.membershipId}
-            className="flex items-center justify-between gap-2 rounded bg-muted px-2 py-1.5"
+            className="flex items-center justify-between gap-2 rounded-full bg-surface px-3 py-1.5"
           >
-            <span className="text-xs text-foreground">{a.orgName}</span>
+            <span className="truncate text-xs font-medium text-ink">{a.orgName}</span>
             <div className="flex items-center gap-2">
               <select
                 defaultValue={a.role}
                 disabled={pending || isSelf}
                 className={selectClass}
-                onChange={(e) =>
-                  startTransition(() => changeRole(a.orgSlug, a.membershipId, e.target.value))
-                }
+                onChange={(e) => startTransition(() => changeRole(a.orgSlug, a.membershipId, e.target.value))}
               >
                 {Object.entries(ROLE_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -93,18 +93,16 @@ export function MemberCard({
                   type="button"
                   disabled={pending}
                   title="Remover acesso"
-                  className="text-muted-foreground transition hover:text-destructive"
-                  onClick={() =>
-                    startTransition(() => removeMember(a.orgSlug, a.membershipId))
-                  }
+                  className="text-ink-3 transition hover:text-danger-deep"
+                  onClick={() => startTransition(() => removeMember(a.orgSlug, a.membershipId))}
                 >
                   <X size={14} />
                 </button>
               )}
             </div>
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
 
       {addableOrgs.length > 0 && (
         <form
@@ -129,13 +127,13 @@ export function MemberCard({
           <button
             type="submit"
             disabled={pending}
-            className="flex items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground"
+            className="flex items-center gap-1 text-xs text-ink-3 transition hover:text-ink"
           >
             <Plus size={13} />
             Dar acesso
           </button>
         </form>
       )}
-    </li>
+    </div>
   );
 }

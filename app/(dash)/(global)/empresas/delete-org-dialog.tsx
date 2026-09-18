@@ -12,8 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { deleteOrganization } from "./actions";
 
-const inputClass =
-  "rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring";
+const selectClass =
+  "rounded-[14px] border border-line bg-canvas px-[14px] py-3 text-[15px] text-ink outline-none focus:border-accent focus:bg-surface";
 
 type Mode = "migrate" | "delete-numbers";
 
@@ -35,19 +35,17 @@ export function DeleteOrgDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button
+      <button
         type="button"
-        variant="outline"
-        size="sm"
-        className="text-destructive hover:border-destructive hover:bg-destructive/10"
+        aria-label="Excluir empresa"
         onClick={(e) => {
           e.preventDefault();
           setOpen(true);
         }}
+        className="flex h-11 w-11 items-center justify-center rounded-full text-ink-2 transition hover:bg-danger-soft hover:text-danger-deep min-[900px]:h-[30px] min-[900px]:w-[30px]"
       >
         <Trash2 size={14} />
-        Excluir
-      </Button>
+      </button>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Excluir {name}</DialogTitle>
@@ -65,20 +63,20 @@ export function DeleteOrgDialog({
           className="flex flex-col gap-4"
         >
           {hasNumbers && otherOrgs.length > 0 && (
-            <div className="flex flex-col gap-3 rounded-md border border-border p-3">
-              <label className="flex items-center gap-2 text-sm">
+            <div className="flex flex-col gap-3 rounded-[14px] bg-row p-3.5">
+              <label className="flex items-center gap-2 text-sm text-ink-2">
                 <input
                   type="radio"
                   name="mode"
                   value="migrate"
                   checked={mode === "migrate"}
                   onChange={() => setMode("migrate")}
-                  className="accent-primary"
+                  className="accent-accent"
                 />
                 Migrar os números pra outra empresa (mantém histórico)
               </label>
               {mode === "migrate" && (
-                <select name="targetOrgSlug" required className={inputClass}>
+                <select name="targetOrgSlug" required className={selectClass}>
                   {otherOrgs.map((o) => (
                     <option key={o.slug} value={o.slug}>
                       {o.name}
@@ -87,14 +85,14 @@ export function DeleteOrgDialog({
                 </select>
               )}
 
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 text-sm text-ink-2">
                 <input
                   type="radio"
                   name="mode"
                   value="delete-numbers"
                   checked={mode === "delete-numbers"}
                   onChange={() => setMode("delete-numbers")}
-                  className="accent-destructive"
+                  className="accent-danger"
                 />
                 Excluir os números junto (irreversível)
               </label>
@@ -104,14 +102,14 @@ export function DeleteOrgDialog({
           {hasNumbers && otherOrgs.length === 0 && (
             <>
               <input type="hidden" name="mode" value="delete-numbers" />
-              <p className="text-sm text-muted-foreground">
+              <p className="type-body-sm text-ink-3">
                 Você não é OWNER de outra empresa pra migrar — os {numberCount} número
                 {numberCount === 1 ? "" : "s"} serão excluídos junto.
               </p>
             </>
           )}
 
-          <Button type="submit" variant="destructive" className="mt-1">
+          <Button type="submit" variant="pill" size="pill" className="mt-1 bg-danger text-danger-ink hover:bg-danger-deep">
             <Trash2 size={15} />
             Confirmar exclusão
           </Button>

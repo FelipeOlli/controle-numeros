@@ -1,4 +1,4 @@
-import { Clock, Users } from "lucide-react";
+import { Clock, Users, ShieldCheck } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { InviteForm } from "./invite-form";
@@ -9,6 +9,12 @@ const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Admin",
   VIEWER: "Visualizador",
 };
+
+const ROLE_EXPLANATIONS: { role: string; text: string }[] = [
+  { role: "Owner", text: "Acesso completo: gerencia empresas, números, equipe e notificações." },
+  { role: "Admin", text: "Gerencia números e checks da empresa, sem excluir a empresa ou a equipe." },
+  { role: "Visualizador", text: "Só acompanha o status dos números, sem editar nada." },
+];
 
 export default async function EquipePage() {
   const session = await auth();
@@ -58,9 +64,9 @@ export default async function EquipePage() {
 
   if (ownedOrgIds.length === 0) {
     return (
-      <div className="flex flex-col gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">Equipe</h1>
-        <p className="text-sm text-muted-foreground">
+      <div className="flex flex-col gap-2 py-1">
+        <h1 className="type-page-title">Equipe</h1>
+        <p className="type-body-sm text-ink-3">
           Você precisa ser OWNER de alguma empresa pra gerenciar acesso de equipe.
         </p>
       </div>
@@ -68,62 +74,77 @@ export default async function EquipePage() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-4 py-1">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Equipe</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="type-page-title">Equipe</h1>
+        <p className="type-body-sm text-ink-3">
           Controle de acesso e permissões pra todas as empresas que você administra.
         </p>
       </div>
 
-      <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-medium text-foreground">Convidar membro</h2>
+      <div className="rounded-[22px] bg-surface p-[22px_24px]">
         <InviteForm orgs={availableOrgs} />
-      </section>
+      </div>
 
-      {invites.length > 0 && (
-        <section>
-          <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-            <Clock size={15} className="text-primary" />
-            Convites pendentes
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {invites.map((i) => (
-              <li
-                key={i.id}
-                className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm shadow-sm"
-              >
-                <span>{i.email}</span>
-                <span className="text-xs text-muted-foreground">
-                  {i.org.name} · {ROLE_LABELS[i.role] ?? i.role} · expira{" "}
-                  {i.expiresAt.toLocaleDateString("pt-BR")}
-                </span>
-              </li>
+      <div className="flex flex-col gap-4 min-[900px]:grid min-[900px]:grid-cols-[minmax(0,1fr)_380px] min-[900px]:items-start">
+        <div className="flex flex-col gap-3 rounded-[22px] bg-surface p-[22px_24px]">
+          <span className="flex items-center gap-2 type-card-title-sm">
+            <Users size={16} className="text-accent" />
+            Membros
+          </span>
+          <div className="flex flex-col gap-2.5">
+            {[...byUser.values()].map((u) => (
+              <MemberCard
+                key={u.userId}
+                userId={u.userId}
+                name={u.name}
+                email={u.email}
+                notifyEnabled={u.notifyEnabled}
+                access={u.access}
+                availableOrgs={availableOrgs}
+                isSelf={u.userId === session!.user.id}
+              />
             ))}
-          </ul>
-        </section>
-      )}
+          </div>
+        </div>
 
-      <section>
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-          <Users size={15} className="text-primary" />
-          Membros
-        </h2>
-        <ul className="flex flex-col gap-2">
-          {[...byUser.values()].map((u) => (
-            <MemberCard
-              key={u.userId}
-              userId={u.userId}
-              name={u.name}
-              email={u.email}
-              notifyEnabled={u.notifyEnabled}
-              access={u.access}
-              availableOrgs={availableOrgs}
-              isSelf={u.userId === session!.user.id}
-            />
-          ))}
-        </ul>
-      </section>
+        <div className="flex flex-col gap-4">
+          {invites.length > 0 && (
+            <div className="flex flex-col gap-3 rounded-[22px] bg-surface p-[22px_24px]">
+              <span className="flex items-center gap-2 type-card-title-sm">
+                <Clock size={16} className="text-accent" />
+                Convites pendentes
+              </span>
+              <div className="flex flex-col divide-y divide-line-2">
+                {invites.map((i) => (
+                  <div key={i.id} className="flex items-center justify-between gap-2 py-2.5 text-sm">
+                    <span className="truncate font-mono text-xs">{i.email}</span>
+                    <span className="whitespace-nowrap text-xs text-ink-3">
+                      {i.org.name} · {ROLE_LABELS[i.role] ?? i.role} · expira{" "}
+                      {i.expiresAt.toLocaleDateString("pt-BR")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 rounded-[22px] bg-surface p-[22px_24px]">
+            <span className="flex items-center gap-2 type-card-title-sm">
+              <ShieldCheck size={16} className="text-accent" />
+              Papéis
+            </span>
+            <div className="flex flex-col divide-y divide-line-2">
+              {ROLE_EXPLANATIONS.map((r) => (
+                <div key={r.role} className="py-2.5">
+                  <div className="text-sm font-semibold text-ink">{r.role}</div>
+                  <p className="type-body-sm text-ink-3">{r.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -2,35 +2,32 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Smartphone, Building2, BellRing, Users } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
-const links: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: "/painel", label: "Números", icon: Smartphone },
-  { href: "/empresas", label: "Empresas", icon: Building2 },
-  { href: "/notificacoes", label: "Notificações", icon: BellRing },
-  { href: "/equipe", label: "Equipe", icon: Users },
+const links: { href: string; label: string }[] = [
+  { href: "/painel", label: "Painel" },
+  { href: "/numeros", label: "Números" },
+  { href: "/empresas", label: "Empresas" },
+  { href: "/notificacoes", label: "Alertas" },
+  { href: "/equipe", label: "Equipe" },
 ];
 
 export function GlobalNavLinks() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-1 text-sm">
+    <nav className="type-nav hidden items-center justify-self-center gap-1.5 min-[900px]:flex">
       {links.map((link) => {
-        const active = pathname.startsWith(link.href);
-        const Icon = link.icon;
+        const active = pathname === link.href || (link.href === "/painel" && pathname === "/");
         return (
           <Link
             key={link.href}
             href={link.href}
             className={
               active
-                ? "flex items-center gap-1.5 rounded-md bg-muted px-3 py-1.5 font-medium text-foreground"
-                : "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                ? "rounded-full bg-pill-active px-5 py-2 font-semibold text-pill-active-ink"
+                : "rounded-full px-[18px] py-2 text-ink-2 transition-colors duration-150 hover:bg-pill-hover hover:text-ink"
             }
           >
-            <Icon size={15} />
             {link.label}
           </Link>
         );

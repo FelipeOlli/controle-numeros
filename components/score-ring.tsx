@@ -1,10 +1,10 @@
 const COLORS: Record<string, string> = {
-  GREEN: "#22c55e",
-  YELLOW: "#f59e0b",
-  RED: "#ef4444",
-  BANNED: "#ef4444",
-  LOST: "#64748b",
-  UNKNOWN: "#64748b",
+  GREEN: "var(--accent)",
+  YELLOW: "var(--warn)",
+  RED: "var(--danger)",
+  BANNED: "var(--danger)",
+  LOST: "var(--neutral-dot)",
+  UNKNOWN: "var(--neutral-dot)",
 };
 
 export function ScoreRing({

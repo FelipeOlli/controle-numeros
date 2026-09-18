@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -13,8 +14,8 @@ import {
 import { PROVIDER_LABELS } from "@/lib/providers";
 import { updateNumber } from "./actions";
 
-const inputClass =
-  "rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring";
+const selectClass =
+  "rounded-[14px] border border-line bg-canvas px-[14px] py-3 text-[15px] text-ink outline-none focus:border-accent focus:bg-surface";
 
 export function EditNumberDialog({
   orgSlug,
@@ -36,7 +37,7 @@ export function EditNumberDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button type="button" variant="pill-ghost" size="pill-sm" onClick={() => setOpen(true)}>
         <Pencil size={14} />
         Editar
       </Button>
@@ -55,22 +56,17 @@ export function EditNumberDialog({
           }}
           className="flex flex-col gap-4"
         >
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Nome/label</label>
-            <input name="label" required defaultValue={label} className={inputClass} />
+          <div className="flex flex-col gap-1.5">
+            <label className="type-form-label text-ink-2">Nome/label</label>
+            <Input name="label" required defaultValue={label} />
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Número (E.164)</label>
-            <input
-              name="e164"
-              required
-              defaultValue={e164}
-              className={`font-mono ${inputClass}`}
-            />
+          <div className="flex flex-col gap-1.5">
+            <label className="type-form-label text-ink-2">Número (E.164)</label>
+            <Input name="e164" required defaultValue={e164} className="font-mono" />
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Origem</label>
-            <select name="provider" defaultValue={provider} className={inputClass}>
+          <div className="flex flex-col gap-1.5">
+            <label className="type-form-label text-ink-2">Origem</label>
+            <select name="provider" defaultValue={provider} className={selectClass}>
               {Object.entries(PROVIDER_LABELS).map(([value, providerLabel]) => (
                 <option key={value} value={value}>
                   {providerLabel}
@@ -79,9 +75,9 @@ export function EditNumberDialog({
             </select>
           </div>
           {movableOrgs.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-muted-foreground">Empresa</label>
-              <select name="targetOrgSlug" defaultValue={orgSlug} className={inputClass}>
+            <div className="flex flex-col gap-1.5">
+              <label className="type-form-label text-ink-2">Empresa</label>
+              <select name="targetOrgSlug" defaultValue={orgSlug} className={selectClass}>
                 <option value={orgSlug}>Manter na empresa atual</option>
                 {movableOrgs.map((o) => (
                   <option key={o.slug} value={o.slug}>
@@ -91,7 +87,7 @@ export function EditNumberDialog({
               </select>
             </div>
           )}
-          <Button type="submit" className="mt-1">
+          <Button type="submit" variant="pill" size="pill" className="mt-1">
             Salvar alterações
           </Button>
         </form>

@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation";
-import { ArrowLeft, ClipboardCheck, ShieldAlert, History, Save } from "lucide-react";
 import Link from "next/link";
+import { ArrowLeft, ArrowRight, ClipboardCheck, ShieldAlert, History } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { requireOrg } from "@/lib/tenant";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/status-badge";
-import { ScoreRing } from "@/components/score-ring";
+import { StatusPill } from "@/components/status-pill";
 import { SELECTABLE_STATUSES, STATUS_LABELS } from "@/lib/health";
 import { PROVIDER_LABELS } from "@/lib/providers";
 import { createCheck } from "./actions";
@@ -14,8 +13,8 @@ import { HealthChart } from "./health-chart";
 import { DeleteNumberButton } from "./delete-number-button";
 import { EditNumberDialog } from "./edit-number-dialog";
 
-const inputClass =
-  "rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring";
+const selectClass =
+  "w-full rounded-[14px] border border-line bg-canvas px-[14px] py-3 text-[15px] text-ink outline-none focus:border-accent focus:bg-surface";
 
 export default async function NumberDetailPage({
   params,
@@ -49,18 +48,143 @@ export default async function NumberDetailPage({
     }),
   ]);
 
+  const chartData = [...checks]
+    .reverse()
+    .map((c) => ({ date: c.createdAt.toISOString(), score: c.score, status: c.status }));
+
+  const identityCard = (
+    <div className="flex flex-col gap-4 rounded-[22px] bg-surface p-[22px_24px] min-[600px]:flex-row min-[600px]:items-start min-[600px]:justify-between">
+      <div>
+        <h1 className="text-[28px] font-bold tracking-[-0.03em]">{number.label}</h1>
+        <p className="font-mono text-[15px] text-ink-3">{number.e164}</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
+            {PROVIDER_LABELS[number.provider] ?? number.provider}
+          </span>
+          <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">{org.name}</span>
+        </div>
+      </div>
+      <div className="flex flex-col items-start gap-1.5 min-[600px]:items-end">
+        <StatusPill status={number.currentStatus} />
+        <span className="type-meta text-ink-3">
+          desde {(number.lastCheckAt ?? number.updatedAt).toLocaleString("pt-BR")}
+        </span>
+      </div>
+    </div>
+  );
+
+  const scoreHistoryCard = chartData.length > 1 && (
+    <div className="flex flex-col gap-4 rounded-[22px] bg-surface p-[22px_24px]">
+      <span className="type-card-title-sm">Histórico de score</span>
+      <HealthChart data={chartData} />
+    </div>
+  );
+
+  const checksHistoryCard = (
+    <div className="flex flex-col gap-3 rounded-[22px] bg-surface p-[22px_24px]">
+      <span className="flex items-center gap-2 type-card-title-sm">
+        <History size={16} className="text-accent" />
+        Histórico de checks
+      </span>
+      {checks.length === 0 ? (
+        <p className="type-body-sm text-ink-3">Nenhum check registrado ainda.</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {checks.map((c) => (
+            <div
+              key={c.id}
+              className="grid grid-cols-1 gap-1.5 rounded-[15px] bg-row px-4 py-3 min-[900px]:grid-cols-[150px_78px_1fr_auto] min-[900px]:items-center min-[900px]:gap-3"
+            >
+              <StatusPill status={c.status} />
+              <span className="font-mono text-xs text-ink-3">score {c.score}</span>
+              <span className="type-body-sm truncate text-ink-2">{c.observation || "—"}</span>
+              <span className="type-meta whitespace-nowrap text-ink-3">
+                {c.createdAt.toLocaleString("pt-BR")} · {c.source === "API" ? "automático" : "manual"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const registerCheckCard = (
+    <div className="flex flex-col gap-4 rounded-[22px] bg-accent p-6">
+      <span className="flex items-center gap-2 text-[19px] font-bold tracking-[-0.02em] text-accent-ink">
+        <ClipboardCheck size={18} />
+        Registrar status
+      </span>
+      <form
+        action={createCheck.bind(null, orgSlug, id)}
+        className="flex flex-col gap-3"
+      >
+        <select name="status" required defaultValue="" className={selectClass}>
+          <option value="" disabled>
+            Selecione o estado atual
+          </option>
+          {SELECTABLE_STATUSES.map((status) => (
+            <option key={status} value={status}>
+              {STATUS_LABELS[status]}
+            </option>
+          ))}
+        </select>
+        <input
+          name="observation"
+          placeholder="Observação (opcional)"
+          className={selectClass}
+        />
+        <Button
+          type="submit"
+          className="mt-1 rounded-full bg-pill-active py-3 text-[15px] font-bold text-pill-active-ink hover:bg-black/80"
+        >
+          Salvar check
+        </Button>
+        <p className="text-[11px] leading-snug text-accent-ink/80">
+          Se for uma piora, um incidente é aberto e os canais ativos disparam na hora.
+        </p>
+      </form>
+    </div>
+  );
+
+  const incidentsCard = (
+    <div className="flex flex-col gap-3 rounded-[22px] bg-surface p-[22px_24px]">
+      <span className="flex items-center gap-2 type-card-title-sm">
+        <ShieldAlert size={16} className="text-accent" />
+        Incidentes
+      </span>
+      {incidents.length === 0 ? (
+        <p className="type-body-sm text-ink-3">Nenhum incidente registrado.</p>
+      ) : (
+        <div className="flex flex-col divide-y divide-line-2">
+          {incidents.map((i) => (
+            <div key={i.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+              <span className="flex items-center gap-1.5">
+                {STATUS_LABELS[i.fromStatus]}
+                <ArrowRight size={13} className="text-ink-3" />
+                {STATUS_LABELS[i.toStatus]}
+              </span>
+              <span className="font-mono text-xs text-ink-3">
+                {i.openedAt.toLocaleString("pt-BR")}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 py-1">
+      <div className="flex items-center justify-between gap-3">
         <Link
           href={`/${orgSlug}/numeros`}
-          className="flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
+          className="flex w-fit items-center gap-1.5 rounded-full bg-surface px-4 py-2 text-sm font-semibold text-ink-2 transition hover:text-ink"
         >
           <ArrowLeft size={15} />
-          Voltar
+          {org.name}
         </Link>
         {canManage && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <EditNumberDialog
               orgSlug={orgSlug}
               numberId={id}
@@ -74,113 +198,25 @@ export default async function NumberDetailPage({
         )}
       </div>
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">{number.label}</h1>
-          <p className="font-mono text-sm text-muted-foreground">{number.e164}</p>
-          <span className="mt-1 inline-block rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-            {PROVIDER_LABELS[number.provider] ?? number.provider}
-          </span>
-        </div>
-        <div className="flex flex-col items-center gap-1">
-          <ScoreRing score={number.currentScore} status={number.currentStatus} size={64} />
-          <StatusBadge status={number.currentStatus} />
-        </div>
+      <div className="flex flex-col gap-4 min-[900px]:hidden">
+        {identityCard}
+        {registerCheckCard}
+        {scoreHistoryCard}
+        {incidentsCard}
+        {checksHistoryCard}
       </div>
 
-      {checks.length > 1 && (
-        <HealthChart
-          data={[...checks]
-            .reverse()
-            .map((c) => ({ date: c.createdAt.toISOString(), score: c.score }))}
-        />
-      )}
-
-      <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-          <ClipboardCheck size={16} className="text-primary" />
-          Registrar status
-        </h2>
-        <form
-          action={createCheck.bind(null, orgSlug, id)}
-          className="flex flex-wrap items-end gap-3"
-        >
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Status</label>
-            <select name="status" required defaultValue="" className={`w-56 ${inputClass}`}>
-              <option value="" disabled>
-                Selecione o estado atual
-              </option>
-              {SELECTABLE_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {STATUS_LABELS[status]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-1 flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Observação</label>
-            <input name="observation" className={`w-full ${inputClass}`} />
-          </div>
-          <Button type="submit">
-            <Save size={15} />
-            Salvar
-          </Button>
-        </form>
-      </section>
-
-      <section>
-        <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-          <ShieldAlert size={16} className="text-primary" />
-          Incidentes
-        </h2>
-        {incidents.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum incidente registrado.</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {incidents.map((i) => (
-              <li
-                key={i.id}
-                className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm"
-              >
-                <span>
-                  {STATUS_LABELS[i.fromStatus]} → {STATUS_LABELS[i.toStatus]}
-                </span>
-                <span className="font-mono text-xs text-muted-foreground">
-                  {i.openedAt.toLocaleString("pt-BR")}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section>
-        <h2 className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-          <History size={16} className="text-primary" />
-          Histórico de checks
-        </h2>
-        <ul className="flex flex-col gap-2">
-          {checks.map((c) => (
-            <li
-              key={c.id}
-              className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm"
-            >
-              <div className="flex items-center gap-3">
-                <StatusBadge status={c.status} />
-                <span className="font-mono text-muted-foreground">score {c.score}</span>
-                {c.observation && (
-                  <span className="text-muted-foreground">{c.observation}</span>
-                )}
-              </div>
-              <span className="font-mono text-xs text-muted-foreground">
-                {c.createdAt.toLocaleString("pt-BR")} ·{" "}
-                {c.source === "API" ? "automático" : "manual"}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <div className="hidden min-[900px]:grid min-[900px]:grid-cols-[minmax(0,1fr)_340px] min-[900px]:items-start min-[900px]:gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
+          {identityCard}
+          {scoreHistoryCard}
+          {checksHistoryCard}
+        </div>
+        <div className="flex flex-col gap-4">
+          {registerCheckCard}
+          {incidentsCard}
+        </div>
+      </div>
     </div>
   );
 }

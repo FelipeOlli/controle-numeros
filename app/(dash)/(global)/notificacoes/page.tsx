@@ -21,32 +21,35 @@ const KIND_ICONS: Record<string, LucideIcon> = {
 export default async function NotificacoesPage() {
   const session = await auth();
   const isOwnerSomewhere = session!.memberships.some((m) => m.role === "OWNER");
+  const user = await prisma.user.findUnique({ where: { id: session!.user.id } });
 
-  // Quem administra alguma empresa vê a config geral da plataforma; quem
-  // não é OWNER em lugar nenhum só decide se quer receber aviso ou não.
+  const personalCard = (
+    <div className="flex flex-col gap-4 rounded-[22px] bg-accent p-6">
+      <span className="flex items-center gap-2 text-[19px] font-bold tracking-[-0.02em] text-accent-ink">
+        <UserCog size={18} />
+        Minha notificação
+      </span>
+      <p className="text-[13px] text-accent-ink/85">
+        Avisos por e-mail dos números das empresas que você tem acesso.
+      </p>
+      <PersonalNotifyForm
+        notifyEnabled={user?.notifyEnabled ?? false}
+        notifyEmail={user?.notifyEmail ?? null}
+        accountEmail={user?.email ?? ""}
+      />
+    </div>
+  );
+
   if (!isOwnerSomewhere) {
-    const user = await prisma.user.findUnique({ where: { id: session!.user.id } });
-
     return (
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-6 py-1">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Minhas notificações</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="type-page-title">Minhas notificações</h1>
+          <p className="type-body-sm text-ink-3">
             Avisos por e-mail dos números das empresas que você tem acesso.
           </p>
         </div>
-
-        <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-            <UserCog size={16} className="text-primary" />
-            Minha notificação
-          </h2>
-          <PersonalNotifyForm
-            notifyEnabled={user?.notifyEnabled ?? false}
-            notifyEmail={user?.notifyEmail ?? null}
-            accountEmail={user?.email ?? ""}
-          />
-        </section>
+        <div className="max-w-[420px]">{personalCard}</div>
       </div>
     );
   }
@@ -60,90 +63,134 @@ export default async function NotificacoesPage() {
     }),
   ]);
 
+  const activeCount = channels.filter((c) => c.enabled).length;
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-4 py-1">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Canais de notificação da plataforma</h1>
-        <p className="text-sm text-muted-foreground">
-          Canais globais, valem pra qualquer empresa da plataforma.
-        </p>
+        <h1 className="type-page-title">Alertas</h1>
+        <p className="type-body-sm text-ink-3">Canais globais, valem pra qualquer empresa da plataforma.</p>
       </div>
 
-      <section>
-        <h2 className="mb-3 text-sm font-medium text-foreground">Canais globais</h2>
-        <ul className="flex flex-col gap-2">
+      <div className="flex flex-col gap-4 min-[900px]:hidden">
+        {personalCard}
+        <ChannelsCard channels={channels} activeCount={activeCount} />
+        <NewChannelCard />
+        <LogsCard logs={logs} />
+      </div>
+
+      <div className="hidden min-[900px]:grid min-[900px]:grid-cols-[minmax(0,1fr)_380px] min-[900px]:items-start min-[900px]:gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
+          <ChannelsCard channels={channels} activeCount={activeCount} />
+          <LogsCard logs={logs} />
+        </div>
+        <div className="flex flex-col gap-4">
+          {personalCard}
+          <NewChannelCard />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChannelsCard({
+  channels,
+  activeCount,
+}: {
+  channels: { id: string; kind: string; config: unknown; enabled: boolean }[];
+  activeCount: number;
+}) {
+  return (
+    <div className="flex flex-col gap-4 rounded-[22px] bg-surface p-[22px_24px]">
+      <div className="flex items-center gap-2.5">
+        <span className="type-card-title">Canais globais</span>
+        <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[13px] font-semibold text-accent-deep">
+          {activeCount} ativo{activeCount === 1 ? "" : "s"}
+        </span>
+      </div>
+      {channels.length === 0 ? (
+        <p className="type-body-sm text-ink-3">Nenhum canal configurado.</p>
+      ) : (
+        <div className="flex flex-col gap-2.5">
           {channels.map((c) => {
             const Icon = KIND_ICONS[c.kind] ?? Radio;
             return (
-              <li
+              <div
                 key={c.id}
-                className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2.5 text-sm shadow-sm"
+                className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-[15px] bg-row px-4 py-3 min-[900px]:grid-cols-[auto_1fr_auto_auto]"
               >
-                <div className="flex items-center gap-3">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-primary">
-                    <Icon size={14} />
-                  </span>
-                  <span className="font-medium text-foreground">
-                    {KIND_LABELS[c.kind] ?? c.kind}
-                  </span>
-                  <span className="font-mono text-xs text-muted-foreground">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink-2">
+                  <Icon size={15} />
+                </span>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-ink">{KIND_LABELS[c.kind] ?? c.kind}</div>
+                  <div className="truncate font-mono text-xs text-ink-3">
                     {JSON.stringify(c.config).slice(0, 60)}
-                  </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={
-                      c.enabled
-                        ? "flex items-center gap-1 text-xs text-primary"
-                        : "flex items-center gap-1 text-xs text-muted-foreground"
-                    }
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${c.enabled ? "bg-primary" : "bg-muted-foreground"}`}
-                    />
-                    {c.enabled ? "ativo" : "inativo"}
-                  </span>
-                  <ToggleButton channelId={c.id} enabled={c.enabled} />
-                </div>
-              </li>
+                <span
+                  className={`hidden text-xs font-medium min-[900px]:flex ${
+                    c.enabled ? "text-accent-deep" : "text-ink-3"
+                  }`}
+                >
+                  {c.enabled ? "ativo" : "inativo"}
+                </span>
+                <ToggleButton channelId={c.id} enabled={c.enabled} />
+              </div>
             );
           })}
-          {channels.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhum canal configurado.</p>
-          )}
-        </ul>
-      </section>
+        </div>
+      )}
+    </div>
+  );
+}
 
-      <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-medium text-foreground">Novo canal</h2>
-        <NewChannelForm />
-      </section>
+function NewChannelCard() {
+  return (
+    <div className="flex flex-col gap-4 rounded-[22px] bg-surface p-[22px_24px]">
+      <span className="type-card-title-sm">Novo canal</span>
+      <NewChannelForm />
+    </div>
+  );
+}
 
-      <section>
-        <h2 className="mb-3 text-sm font-medium text-foreground">Últimos disparos</h2>
-        <ul className="flex flex-col gap-2">
+function LogsCard({
+  logs,
+}: {
+  logs: {
+    id: string;
+    ok: boolean;
+    error: string | null;
+    createdAt: Date;
+    phoneNumber: { label: string; org: { name: string } };
+    channel: { kind: string } | null;
+  }[];
+}) {
+  return (
+    <div className="flex flex-col gap-3 rounded-[22px] bg-surface p-[22px_24px]">
+      <span className="type-card-title-sm">Últimos disparos</span>
+      {logs.length === 0 ? (
+        <p className="type-body-sm text-ink-3">Nenhuma notificação disparada ainda.</p>
+      ) : (
+        <div className="flex flex-col divide-y divide-line-2">
           {logs.map((l) => (
-            <li
-              key={l.id}
-              className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm shadow-sm"
-            >
-              <span>
-                {l.phoneNumber.org.name} · {l.phoneNumber.label} →{" "}
-                {l.channel ? KIND_LABELS[l.channel.kind] ?? l.channel.kind : "E-mail pessoal"}
+            <div key={l.id} className="flex flex-col gap-1 py-2.5 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate">
+                  {l.phoneNumber.label} →{" "}
+                  {l.channel ? KIND_LABELS[l.channel.kind] ?? l.channel.kind : "E-mail pessoal"}
+                </span>
+                <span className={l.ok ? "text-accent-deep" : "text-danger-deep"}>
+                  {l.ok ? "ok" : `falhou · ${l.error ?? "erro"}`}
+                </span>
+              </div>
+              <span className="type-meta text-ink-3">
+                {l.phoneNumber.org.name} · {l.createdAt.toLocaleString("pt-BR")}
               </span>
-              <span className={l.ok ? "text-primary" : "text-destructive"}>
-                {l.ok ? "ok" : l.error ?? "falhou"}
-              </span>
-              <span className="font-mono text-xs text-muted-foreground">
-                {l.createdAt.toLocaleString("pt-BR")}
-              </span>
-            </li>
+            </div>
           ))}
-          {logs.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhuma notificação disparada ainda.</p>
-          )}
-        </ul>
-      </section>
+        </div>
+      )}
     </div>
   );
 }

@@ -15,7 +15,7 @@ export function OrgSwitcher({ current, orgs }: { current: string; orgs: Org[] })
   return (
     <select
       defaultValue={current}
-      className="rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+      className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-bold text-ink outline-none focus:border-accent"
       onChange={(e) => router.push(`/${e.target.value}/numeros`)}
     >
       {orgs.map((o) => (
