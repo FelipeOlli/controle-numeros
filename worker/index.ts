@@ -76,13 +76,13 @@ cron.schedule("0 * * * *", () => {
   markStaleNumbers().catch((err) => console.error("[worker] erro no markStaleNumbers", err));
 });
 
-// A cada 30 minutos, sincroniza conexão/pagamento/vencimento das instâncias Z-API.
-cron.schedule("*/30 * * * *", () => {
+// A cada 10 minutos, sincroniza conexão/pagamento/vencimento das instâncias Z-API.
+cron.schedule("*/10 * * * *", () => {
   syncAllZapiCredentials().catch((err) => console.error("[worker] erro no syncAllZapiCredentials", err));
 });
 
-// Todo dia às 9h, gera o resumo.
-cron.schedule("0 9 * * *", () => {
+// Todo dia às 7h, gera o resumo.
+cron.schedule("0 7 * * *", () => {
   sendDailyDigest().catch((err) => console.error("[worker] erro no sendDailyDigest", err));
 });
 
