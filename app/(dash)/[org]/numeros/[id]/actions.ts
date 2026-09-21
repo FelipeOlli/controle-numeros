@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { requireOrg, requireRole, TenantError } from "@/lib/tenant";
 import { recordHealthCheck } from "@/lib/checks";
 import { SELECTABLE_STATUSES } from "@/lib/health";
+import { syncZapiForNumber, type ZapiNumberSyncResult } from "@/lib/providers/zapi-sync";
 import {
   ORIGIN_LABELS,
   PLATFORM_LABELS,
@@ -258,6 +259,27 @@ export async function quickRecharge(orgSlug: string, numberId: string) {
   });
 
   revalidatePath(`/${orgSlug}/numeros/${numberId}`);
+}
+
+/** Botão "Sincronizar" — mesma sincronização do worker, mas só pra esse número. */
+export async function syncZapiNumberNow(
+  orgSlug: string,
+  numberId: string,
+): Promise<ZapiNumberSyncResult> {
+  const { org, role } = await requireOrg(orgSlug);
+  requireRole(role, ["OWNER", "ADMIN"]);
+
+  const number = await prisma.phoneNumber.findUnique({ where: { id: numberId } });
+  if (!number || number.orgId !== org.id) {
+    throw new TenantError("Número não encontrado", 404);
+  }
+
+  const result = await syncZapiForNumber(org.id, numberId);
+
+  revalidatePath(`/${orgSlug}/numeros/${numberId}`);
+  revalidatePath(`/${orgSlug}/numeros`);
+
+  return result;
 }
 
 export async function createCheck(orgSlug: string, numberId: string, formData: FormData) {

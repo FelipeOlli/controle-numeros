@@ -9,13 +9,14 @@ import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/status-pill";
 import { SELECTABLE_STATUSES, STATUS_LABELS } from "@/lib/health";
 import { ORIGIN_LABELS, PLATFORM_LABELS, CHIP_PLAN_LABELS, tracksRecharge } from "@/lib/providers";
-import { dueDateStatus } from "@/lib/format";
+import { dueDateStatus, formatDateTime } from "@/lib/format";
 import { createCheck } from "./actions";
 import type { ChipPlan } from "@/generated/prisma/enums";
 import { HealthChart } from "./health-chart";
 import { DeleteNumberButton } from "./delete-number-button";
 import { EditNumberDialog } from "./edit-number-dialog";
 import { ZapiBillingForm } from "./zapi-billing-form";
+import { ZapiSyncButton } from "./zapi-sync-button";
 import { RechargeForm } from "./recharge-form";
 
 const selectClass =
@@ -144,14 +145,15 @@ export default async function NumberDetailPage({
       <div className="flex flex-col items-start gap-1.5 min-[600px]:items-end">
         <StatusPill status={number.currentStatus} />
         <span className="type-meta text-ink-3">
-          desde {(number.lastCheckAt ?? number.updatedAt).toLocaleString("pt-BR")}
+          desde {formatDateTime(number.lastCheckAt ?? number.updatedAt)}
         </span>
         {isZapi && (
           <span className="type-meta text-ink-3">
             Z-API sincronizado{" "}
-            {number.lastSyncAt ? number.lastSyncAt.toLocaleString("pt-BR") : "nunca"}
+            {number.lastSyncAt ? formatDateTime(number.lastSyncAt) : "nunca"}
           </span>
         )}
+        {isZapi && canManage && <ZapiSyncButton orgSlug={orgSlug} numberId={id} />}
       </div>
     </div>
   );
@@ -184,7 +186,7 @@ export default async function NumberDetailPage({
                   <span className="font-mono text-xs text-ink-3">score {entry.check.score}</span>
                   <span className="type-body-sm truncate text-ink-2">{entry.check.observation || "—"}</span>
                   <span className="type-meta whitespace-nowrap text-ink-3">
-                    {entry.check.createdAt.toLocaleString("pt-BR")} ·{" "}
+                    {formatDateTime(entry.check.createdAt)} ·{" "}
                     {entry.check.source === "API" ? "automático" : "manual"}
                   </span>
                 </div>
@@ -207,7 +209,7 @@ export default async function NumberDetailPage({
                     {CHIP_PLAN_LABELS[entry.to as ChipPlan] ?? entry.to}
                   </span>
                   <span className="type-meta whitespace-nowrap text-ink-3">
-                    {entry.createdAt.toLocaleString("pt-BR")}
+                    {formatDateTime(entry.createdAt)}
                   </span>
                 </div>
               );
@@ -225,7 +227,7 @@ export default async function NumberDetailPage({
                 <span />
                 <span className="type-body-sm truncate text-ink-2">{entry.to || "removidas"}</span>
                 <span className="type-meta whitespace-nowrap text-ink-3">
-                  {entry.createdAt.toLocaleString("pt-BR")}
+                  {formatDateTime(entry.createdAt)}
                 </span>
               </div>
             );
@@ -291,7 +293,7 @@ export default async function NumberDetailPage({
                 {STATUS_LABELS[i.toStatus]}
               </span>
               <span className="font-mono text-xs text-ink-3">
-                {i.openedAt.toLocaleString("pt-BR")}
+                {formatDateTime(i.openedAt)}
               </span>
             </div>
           ))}
