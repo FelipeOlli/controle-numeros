@@ -33,9 +33,14 @@ export function PersonalNotifyForm({
         <div className="flex flex-col gap-1.5">
           <label className="type-form-label flex items-center gap-1.5 text-ink-2">
             <Mail size={12} />
-            E-mail (deixe em branco pra usar {accountEmail})
+            E-mail
           </label>
-          <Input name="notifyEmail" type="email" placeholder={accountEmail} defaultValue={notifyEmail ?? ""} />
+          <Input
+            name="notifyEmail"
+            type="email"
+            placeholder={`Deixe em branco pra usar ${accountEmail}`}
+            defaultValue={notifyEmail ?? ""}
+          />
         </div>
         <Button type="submit" variant="pill" size="pill" className="w-fit">
           Salvar
