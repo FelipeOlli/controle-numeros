@@ -3,8 +3,11 @@ import cron from "node-cron";
 import { PrismaClient } from "../generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { isStale } from "../lib/health";
-import { dispatchStatusChange } from "../lib/alerts/dispatch";
+import { dueDateStatus } from "../lib/format";
+import { dispatchStatusChange, dispatchRechargeReminder } from "../lib/alerts/dispatch";
 import { syncAllZapiCredentials } from "../lib/providers/zapi-sync";
+
+const RECHARGE_REMINDER_DAYS = 7;
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -48,6 +51,42 @@ async function markStaleNumbers() {
   }
 }
 
+/**
+ * Lembrete de recarga: chip físico sem crédito a cada ~3 meses perde o
+ * número. Dispara uma vez por ciclo (debounce em rechargeReminderSentAt,
+ * resetado sempre que a data muda) quando faltam poucos dias pro
+ * vencimento.
+ */
+async function checkRechargeReminders() {
+  const candidates = await prisma.phoneNumber.findMany({
+    where: {
+      active: true,
+      origin: "CHIP_FISICO",
+      nextRechargeAt: { not: null },
+      rechargeReminderSentAt: null,
+    },
+  });
+
+  for (const number of candidates) {
+    const { daysUntil } = dueDateStatus(number.nextRechargeAt!);
+    if (daysUntil > RECHARGE_REMINDER_DAYS) continue;
+
+    await dispatchRechargeReminder({
+      orgId: number.orgId,
+      phoneNumberId: number.id,
+      phoneLabel: number.label,
+      nextRechargeAt: number.nextRechargeAt!,
+    });
+
+    await prisma.phoneNumber.update({
+      where: { id: number.id },
+      data: { rechargeReminderSentAt: new Date() },
+    });
+
+    console.log(`[worker] lembrete de recarga enviado pra ${number.label} (${daysUntil} dia(s))`);
+  }
+}
+
 /** Resumo diário por org: quantos números em cada status. */
 async function sendDailyDigest() {
   const hasChannel = (await prisma.alertChannel.count({ where: { enabled: true } })) > 0;
@@ -81,11 +120,13 @@ cron.schedule("*/10 * * * *", () => {
   syncAllZapiCredentials().catch((err) => console.error("[worker] erro no syncAllZapiCredentials", err));
 });
 
-// Todo dia às 7h, gera o resumo.
+// Todo dia às 7h, gera o resumo e verifica lembretes de recarga.
 cron.schedule("0 7 * * *", () => {
   sendDailyDigest().catch((err) => console.error("[worker] erro no sendDailyDigest", err));
+  checkRechargeReminders().catch((err) => console.error("[worker] erro no checkRechargeReminders", err));
 });
 
 // Roda uma vez já na subida, para não esperar o próximo agendamento.
 markStaleNumbers().catch((err) => console.error("[worker] erro no markStaleNumbers", err));
 syncAllZapiCredentials().catch((err) => console.error("[worker] erro no syncAllZapiCredentials", err));
+checkRechargeReminders().catch((err) => console.error("[worker] erro no checkRechargeReminders", err));

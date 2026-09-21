@@ -32,6 +32,15 @@ enum NumberPlatform {
   META_CLOUD
 }
 
+/// Operadora do chip físico — só relevante pra origem CHIP_FISICO.
+enum Carrier {
+  TIM
+  VIVO
+  CLARO
+  OI
+  OUTRA
+}
+
 enum HealthStatus {
   GREEN
   YELLOW
@@ -131,6 +140,15 @@ model PhoneNumber {
   /// (cache, não histórico). Nulo pra provedores/números sem esse dado.
   providerDueAt         DateTime?
   providerPaymentStatus String?
+  /// Recarga de crédito do chip físico — sem crédito a cada ~3 meses, a
+  /// operadora recolhe o número. Só relevante pra origem CHIP_FISICO.
+  carrier        Carrier?
+  lastRechargeAt DateTime?
+  nextRechargeAt DateTime?
+  /// Debounce do lembrete de recarga: null até disparar, resetado sempre
+  /// que nextRechargeAt muda (edição manual ou botão "Recarregar") — evita
+  /// alertar todo dia enquanto a recarga estiver perto do vencimento.
+  rechargeReminderSentAt DateTime?
   notes         String?
   active        Boolean      @default(true)
   createdAt     DateTime     @default(now())

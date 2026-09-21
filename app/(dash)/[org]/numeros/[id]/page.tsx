@@ -9,11 +9,13 @@ import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/status-pill";
 import { SELECTABLE_STATUSES, STATUS_LABELS } from "@/lib/health";
 import { ORIGIN_LABELS, PLATFORM_LABELS } from "@/lib/providers";
+import { dueDateStatus } from "@/lib/format";
 import { createCheck } from "./actions";
 import { HealthChart } from "./health-chart";
 import { DeleteNumberButton } from "./delete-number-button";
 import { EditNumberDialog } from "./edit-number-dialog";
 import { ZapiBillingForm } from "./zapi-billing-form";
+import { RechargeForm } from "./recharge-form";
 
 const selectClass =
   "w-full rounded-[14px] border border-line bg-canvas px-[14px] py-3 text-[15px] text-ink outline-none focus:border-accent focus:bg-surface";
@@ -56,28 +58,25 @@ export default async function NumberDetailPage({
 
   const isZapi = number.platforms.includes("ZAPI");
 
+  const isChipFisico = number.origin === "CHIP_FISICO";
+
   let billingPill: ReactNode = null;
   if (isZapi && number.providerDueAt) {
-    const daysUntilDue = Math.ceil(
-      (number.providerDueAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
-    );
-    const colorClass =
-      daysUntilDue <= 3
-        ? "bg-danger-soft text-danger-deep"
-        : daysUntilDue <= 10
-          ? "bg-warn-soft text-warn-deep"
-          : "bg-accent-soft text-accent-deep";
-    const label =
-      daysUntilDue < 0
-        ? `Vencido há ${Math.abs(daysUntilDue)} dia${Math.abs(daysUntilDue) === 1 ? "" : "s"}`
-        : daysUntilDue === 0
-          ? "Vence hoje"
-          : `Vence em ${daysUntilDue} dia${daysUntilDue === 1 ? "" : "s"}`;
-
+    const { colorClass, label } = dueDateStatus(number.providerDueAt);
     billingPill = (
       <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${colorClass}`}>
         {label}
         {number.providerPaymentStatus ? ` · ${number.providerPaymentStatus}` : ""}
+      </span>
+    );
+  }
+
+  let rechargePill: ReactNode = null;
+  if (isChipFisico && number.nextRechargeAt) {
+    const { colorClass, label } = dueDateStatus(number.nextRechargeAt);
+    rechargePill = (
+      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${colorClass}`}>
+        Recarga: {label}
       </span>
     );
   }
@@ -98,6 +97,7 @@ export default async function NumberDetailPage({
           ))}
           <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">{org.name}</span>
           {billingPill}
+          {rechargePill}
         </div>
       </div>
       <div className="flex flex-col items-start gap-1.5 min-[600px]:items-end">
@@ -218,6 +218,16 @@ export default async function NumberDetailPage({
     />
   );
 
+  const rechargeCard = isChipFisico && canManage && (
+    <RechargeForm
+      orgSlug={orgSlug}
+      numberId={id}
+      carrier={number.carrier}
+      lastRechargeAt={number.lastRechargeAt}
+      nextRechargeAt={number.nextRechargeAt}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-4 py-1">
       <div className="flex items-center justify-between gap-3">
@@ -250,6 +260,7 @@ export default async function NumberDetailPage({
         {identityCard}
         {registerCheckCard}
         {billingCard}
+        {rechargeCard}
         {scoreHistoryCard}
         {incidentsCard}
         {checksHistoryCard}
@@ -264,6 +275,7 @@ export default async function NumberDetailPage({
         <div className="flex flex-col gap-4">
           {registerCheckCard}
           {billingCard}
+          {rechargeCard}
           {incidentsCard}
         </div>
       </div>

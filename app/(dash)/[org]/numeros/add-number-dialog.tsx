@@ -12,7 +12,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { PlatformCheckboxes } from "@/components/platform-checkboxes";
-import { ORIGIN_LABELS } from "@/lib/providers";
+import { ORIGIN_LABELS, CARRIER_LABELS } from "@/lib/providers";
 import { createNumber } from "./actions";
 import type { NumberOrigin, NumberPlatform } from "@/generated/prisma/enums";
 
@@ -67,6 +67,25 @@ export function AddNumberDialog({ orgSlug }: { orgSlug: string }) {
               ))}
             </select>
           </div>
+          {origin === "CHIP_FISICO" && (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label className="type-form-label text-ink-2">Operadora</label>
+                <select name="carrier" defaultValue="" className={selectClass}>
+                  <option value="">Selecione</option>
+                  {Object.entries(CARRIER_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="type-form-label text-ink-2">Última recarga</label>
+                <Input name="lastRechargeAt" type="date" required />
+              </div>
+            </>
+          )}
           <PlatformCheckboxes origin={origin} selected={platforms} onChange={setPlatforms} />
           {platforms.includes("ZAPI") && (
             <>

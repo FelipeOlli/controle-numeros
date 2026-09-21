@@ -6,20 +6,34 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireOrg, requireRole, TenantError } from "@/lib/tenant";
 import { syncZapiForOrg, type ZapiSyncResult } from "@/lib/providers/zapi-sync";
-import { ORIGIN_LABELS, PLATFORM_LABELS, resolvePlatforms } from "@/lib/providers";
-import type { NumberOrigin, NumberPlatform } from "@/generated/prisma/enums";
+import {
+  ORIGIN_LABELS,
+  PLATFORM_LABELS,
+  CARRIER_LABELS,
+  resolvePlatforms,
+  computeNextRecharge,
+} from "@/lib/providers";
+import type { NumberOrigin, NumberPlatform, Carrier } from "@/generated/prisma/enums";
 
 const originValues = Object.keys(ORIGIN_LABELS) as [NumberOrigin, ...NumberOrigin[]];
 const platformValues = Object.keys(PLATFORM_LABELS) as [NumberPlatform, ...NumberPlatform[]];
+const carrierValues = Object.keys(CARRIER_LABELS) as [Carrier, ...Carrier[]];
 
-const createSchema = z.object({
-  label: z.string().min(1),
-  e164: z.string().min(8),
-  origin: z.enum(originValues),
-  platforms: z.array(z.enum(platformValues)),
-  externalId: z.string().optional(),
-  providerToken: z.string().optional(),
-});
+const createSchema = z
+  .object({
+    label: z.string().min(1),
+    e164: z.string().min(8),
+    origin: z.enum(originValues),
+    platforms: z.array(z.enum(platformValues)),
+    externalId: z.string().optional(),
+    providerToken: z.string().optional(),
+    carrier: z.enum(carrierValues).optional(),
+    lastRechargeAt: z.string().optional(),
+  })
+  .refine((data) => data.origin !== "CHIP_FISICO" || data.lastRechargeAt, {
+    message: "Informe a data da última recarga pra números de chip físico",
+    path: ["lastRechargeAt"],
+  });
 
 export async function createNumber(orgSlug: string, formData: FormData) {
   const { org, role } = await requireOrg(orgSlug);
@@ -32,13 +46,24 @@ export async function createNumber(orgSlug: string, formData: FormData) {
     platforms: formData.getAll("platforms"),
     externalId: formData.get("externalId") || undefined,
     providerToken: formData.get("providerToken") || undefined,
+    carrier: formData.get("carrier") || undefined,
+    lastRechargeAt: formData.get("lastRechargeAt") || undefined,
   });
+
+  const lastRechargeAt = data.lastRechargeAt ? new Date(data.lastRechargeAt) : null;
 
   await prisma.phoneNumber.create({
     data: {
-      ...data,
+      label: data.label,
+      e164: data.e164,
+      origin: data.origin,
       platforms: resolvePlatforms(data.origin, data.platforms),
+      externalId: data.externalId,
+      providerToken: data.providerToken,
       orgId: org.id,
+      carrier: data.origin === "CHIP_FISICO" ? (data.carrier ?? null) : null,
+      lastRechargeAt,
+      nextRechargeAt: lastRechargeAt ? computeNextRecharge(lastRechargeAt) : null,
     },
   });
 

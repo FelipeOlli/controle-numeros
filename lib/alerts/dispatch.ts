@@ -13,29 +13,25 @@ interface TransitionInfo {
 }
 
 /**
- * Dispara alertas quando o status de um número piora: pros canais globais
- * ativos (valem pra qualquer empresa) e por e-mail pra cada usuário com
- * acesso à empresa do número que ligou "recebo notificações". Cada
- * tentativa vira um AlertLog, mesmo em caso de falha — é o histórico de
- * auditoria dos avisos.
+ * Dispara um alerta pros canais globais ativos (valem pra qualquer empresa)
+ * e por e-mail pra cada usuário com acesso à empresa que ligou "recebo
+ * notificações". Cada tentativa vira um AlertLog, mesmo em caso de falha —
+ * é o histórico de auditoria dos avisos. Usada tanto por piora de status
+ * quanto por lembrete de recarga — só o assunto/payload muda.
  */
-export async function dispatchStatusChange(info: TransitionInfo) {
+async function dispatchAlert(
+  orgId: string,
+  phoneNumberId: string,
+  subject: string,
+  payload: Record<string, string>,
+) {
   const [channels, notifyUsers] = await Promise.all([
     prisma.alertChannel.findMany({ where: { enabled: true } }),
     prisma.user.findMany({
-      where: { notifyEnabled: true, memberships: { some: { orgId: info.orgId } } },
+      where: { notifyEnabled: true, memberships: { some: { orgId } } },
       select: { id: true, email: true, notifyEmail: true },
     }),
   ]);
-
-  const subject = `[${info.toStatus}] ${info.phoneLabel} mudou de ${info.fromStatus} para ${info.toStatus}`;
-  const payload = {
-    phoneNumberId: info.phoneNumberId,
-    phoneLabel: info.phoneLabel,
-    fromStatus: info.fromStatus,
-    toStatus: info.toStatus,
-    at: new Date().toISOString(),
-  };
 
   await Promise.all([
     ...channels.map(async (channel) => {
@@ -61,8 +57,8 @@ export async function dispatchStatusChange(info: TransitionInfo) {
 
       await prisma.alertLog.create({
         data: {
-          orgIdAtDispatch: info.orgId,
-          phoneNumberId: info.phoneNumberId,
+          orgIdAtDispatch: orgId,
+          phoneNumberId,
           channelId: channel.id,
           payload,
           ok,
@@ -87,8 +83,8 @@ export async function dispatchStatusChange(info: TransitionInfo) {
 
       await prisma.alertLog.create({
         data: {
-          orgIdAtDispatch: info.orgId,
-          phoneNumberId: info.phoneNumberId,
+          orgIdAtDispatch: orgId,
+          phoneNumberId,
           notifiedUserId: user.id,
           payload,
           ok,
@@ -97,4 +93,37 @@ export async function dispatchStatusChange(info: TransitionInfo) {
       });
     }),
   ]);
+}
+
+/** Dispara alertas quando o status de um número piora. */
+export async function dispatchStatusChange(info: TransitionInfo) {
+  const subject = `[${info.toStatus}] ${info.phoneLabel} mudou de ${info.fromStatus} para ${info.toStatus}`;
+  const payload = {
+    phoneNumberId: info.phoneNumberId,
+    phoneLabel: info.phoneLabel,
+    fromStatus: info.fromStatus,
+    toStatus: info.toStatus,
+    at: new Date().toISOString(),
+  };
+
+  await dispatchAlert(info.orgId, info.phoneNumberId, subject, payload);
+}
+
+/** Dispara o lembrete de recarga de um chip físico perto de vencer. */
+export async function dispatchRechargeReminder(info: {
+  orgId: string;
+  phoneNumberId: string;
+  phoneLabel: string;
+  nextRechargeAt: Date;
+}) {
+  const dueDate = info.nextRechargeAt.toLocaleDateString("pt-BR");
+  const subject = `[Recarga] ${info.phoneLabel} vence em ${dueDate}`;
+  const payload = {
+    phoneNumberId: info.phoneNumberId,
+    phoneLabel: info.phoneLabel,
+    nextRechargeAt: info.nextRechargeAt.toISOString(),
+    at: new Date().toISOString(),
+  };
+
+  await dispatchAlert(info.orgId, info.phoneNumberId, subject, payload);
 }

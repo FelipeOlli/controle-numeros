@@ -7,3 +7,31 @@ export function timeAgo(date: Date, now: Date = new Date()): string {
   const days = Math.floor(hours / 24);
   return `há ${days} d`;
 }
+
+/**
+ * Pílula de "vencimento" — usada pro vencimento Z-API e pra recarga de chip
+ * físico. Mesmas faixas de cor do resto do app: ≤3 dias crítico, ≤10 dias
+ * atenção, senão estável.
+ */
+export function dueDateStatus(
+  date: Date,
+  now: Date = new Date(),
+): { daysUntil: number; colorClass: string; label: string } {
+  const daysUntil = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  const colorClass =
+    daysUntil <= 3
+      ? "bg-danger-soft text-danger-deep"
+      : daysUntil <= 10
+        ? "bg-warn-soft text-warn-deep"
+        : "bg-accent-soft text-accent-deep";
+
+  const label =
+    daysUntil < 0
+      ? `Vencido há ${Math.abs(daysUntil)} dia${Math.abs(daysUntil) === 1 ? "" : "s"}`
+      : daysUntil === 0
+        ? "Vence hoje"
+        : `Vence em ${daysUntil} dia${daysUntil === 1 ? "" : "s"}`;
+
+  return { daysUntil, colorClass, label };
+}

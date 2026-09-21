@@ -1,4 +1,4 @@
-import type { NumberOrigin, NumberPlatform } from "@/generated/prisma/enums";
+import type { NumberOrigin, NumberPlatform, Carrier } from "@/generated/prisma/enums";
 
 /** Como o número foi adquirido. */
 export const ORIGIN_LABELS: Record<NumberOrigin, string> = {
@@ -16,6 +16,25 @@ export const PLATFORM_LABELS: Record<NumberPlatform, string> = {
   EVOLUTION: "Evolution API",
   META_CLOUD: "Meta Cloud API",
 };
+
+/** Operadora do chip físico. */
+export const CARRIER_LABELS: Record<Carrier, string> = {
+  TIM: "TIM",
+  VIVO: "Vivo",
+  CLARO: "Claro",
+  OI: "Oi",
+  OUTRA: "Outra",
+};
+
+/** Sem crédito a cada ~3 meses, a operadora recolhe o chip físico. */
+export const RECHARGE_INTERVAL_DAYS = 90;
+
+/** Última recarga + intervalo padrão = próxima recarga prevista. */
+export function computeNextRecharge(lastRechargeAt: Date): Date {
+  const next = new Date(lastRechargeAt);
+  next.setDate(next.getDate() + RECHARGE_INTERVAL_DAYS);
+  return next;
+}
 
 /**
  * Só a origem Meta oficial força o vínculo (sempre Meta Cloud API). Todas as
