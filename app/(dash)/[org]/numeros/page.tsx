@@ -5,6 +5,7 @@ import { requireOrg } from "@/lib/tenant";
 import { ScoreRing } from "@/components/score-ring";
 import { StatusPill } from "@/components/status-pill";
 import { ORIGIN_LABELS, PLATFORM_LABELS } from "@/lib/providers";
+import { dueDateStatus } from "@/lib/format";
 import { AddNumberDialog } from "./add-number-dialog";
 import { ZapiCredentialForm } from "./zapi-credential-form";
 import type { HealthStatus } from "@/generated/prisma/enums";
@@ -112,6 +113,14 @@ export default async function NumerosPage({
                     {PLATFORM_LABELS[platform]}
                   </span>
                 ))}
+                {n.origin === "CHIP_FISICO" && n.nextRechargeAt && (() => {
+                  const { colorClass, label } = dueDateStatus(n.nextRechargeAt);
+                  return (
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${colorClass}`}>
+                      Recarga: {label}
+                    </span>
+                  );
+                })()}
               </div>
               <StatusPill status={n.currentStatus} />
             </div>
