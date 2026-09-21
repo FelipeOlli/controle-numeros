@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, ClipboardCheck, ShieldAlert, History } from "lucide-react";
+import { ArrowLeft, ArrowRight, ClipboardCheck, ShieldAlert, History, BatteryCharging } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { requireOrg } from "@/lib/tenant";
@@ -11,6 +11,7 @@ import { SELECTABLE_STATUSES, STATUS_LABELS } from "@/lib/health";
 import { ORIGIN_LABELS, PLATFORM_LABELS, CHIP_PLAN_LABELS, tracksRecharge } from "@/lib/providers";
 import { dueDateStatus } from "@/lib/format";
 import { createCheck } from "./actions";
+import type { ChipPlan } from "@/generated/prisma/enums";
 import { HealthChart } from "./health-chart";
 import { DeleteNumberButton } from "./delete-number-button";
 import { EditNumberDialog } from "./edit-number-dialog";
@@ -39,7 +40,7 @@ export default async function NumberDetailPage({
     notFound();
   }
 
-  const [checks, incidents] = await Promise.all([
+  const [checks, incidents, chipPlanLogs] = await Promise.all([
     prisma.healthCheck.findMany({
       where: { phoneNumberId: id },
       orderBy: { createdAt: "desc" },
@@ -50,7 +51,24 @@ export default async function NumberDetailPage({
       orderBy: { openedAt: "desc" },
       take: 10,
     }),
+    prisma.alertLog.findMany({
+      where: { phoneNumberId: id, payload: { path: ["event"], equals: "chip_plan_changed" } },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
   ]);
+
+  type HistoryEntry =
+    | { kind: "check"; createdAt: Date; check: (typeof checks)[number] }
+    | { kind: "chipPlanChange"; createdAt: Date; from: string | null; to: string };
+
+  const historyEntries: HistoryEntry[] = [
+    ...checks.map((c) => ({ kind: "check" as const, createdAt: c.createdAt, check: c })),
+    ...chipPlanLogs.map((l) => {
+      const payload = l.payload as { from: string | null; to: string };
+      return { kind: "chipPlanChange" as const, createdAt: l.createdAt, from: payload.from, to: payload.to };
+    }),
+  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
   const chartData = [...checks]
     .reverse()
@@ -130,23 +148,43 @@ export default async function NumberDetailPage({
         <History size={16} className="text-accent" />
         Histórico de checks
       </span>
-      {checks.length === 0 ? (
+      {historyEntries.length === 0 ? (
         <p className="type-body-sm text-ink-3">Nenhum check registrado ainda.</p>
       ) : (
         <div className="flex flex-col gap-2">
-          {checks.map((c) => (
-            <div
-              key={c.id}
-              className="grid grid-cols-1 gap-1.5 rounded-[15px] bg-row px-4 py-3 min-[900px]:grid-cols-[150px_78px_1fr_auto] min-[900px]:items-center min-[900px]:gap-3"
-            >
-              <StatusPill status={c.status} />
-              <span className="font-mono text-xs text-ink-3">score {c.score}</span>
-              <span className="type-body-sm truncate text-ink-2">{c.observation || "—"}</span>
-              <span className="type-meta whitespace-nowrap text-ink-3">
-                {c.createdAt.toLocaleString("pt-BR")} · {c.source === "API" ? "automático" : "manual"}
-              </span>
-            </div>
-          ))}
+          {historyEntries.map((entry) =>
+            entry.kind === "check" ? (
+              <div
+                key={entry.check.id}
+                className="grid grid-cols-1 gap-1.5 rounded-[15px] bg-row px-4 py-3 min-[900px]:grid-cols-[150px_78px_1fr_auto] min-[900px]:items-center min-[900px]:gap-3"
+              >
+                <StatusPill status={entry.check.status} />
+                <span className="font-mono text-xs text-ink-3">score {entry.check.score}</span>
+                <span className="type-body-sm truncate text-ink-2">{entry.check.observation || "—"}</span>
+                <span className="type-meta whitespace-nowrap text-ink-3">
+                  {entry.check.createdAt.toLocaleString("pt-BR")} ·{" "}
+                  {entry.check.source === "API" ? "automático" : "manual"}
+                </span>
+              </div>
+            ) : (
+              <div
+                key={`plan-${entry.createdAt.getTime()}`}
+                className="grid grid-cols-1 gap-1.5 rounded-[15px] bg-row px-4 py-3 min-[900px]:grid-cols-[150px_78px_1fr_auto] min-[900px]:items-center min-[900px]:gap-3"
+              >
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-2">
+                  <BatteryCharging size={13} className="text-accent" />
+                  Plano
+                </span>
+                <span />
+                <span className="type-body-sm truncate text-ink-2">
+                  {CHIP_PLAN_LABELS[entry.from as ChipPlan] ?? "—"} → {CHIP_PLAN_LABELS[entry.to as ChipPlan] ?? entry.to}
+                </span>
+                <span className="type-meta whitespace-nowrap text-ink-3">
+                  {entry.createdAt.toLocaleString("pt-BR")}
+                </span>
+              </div>
+            ),
+          )}
         </div>
       )}
     </div>
