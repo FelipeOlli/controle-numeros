@@ -1,4 +1,6 @@
-import { Mail, Webhook, MessageCircle, Radio, UserCog } from "lucide-react";
+import { Mail, Webhook, MessageCircle, Radio, UserCog, BatteryCharging } from "lucide-react";
+import { CHIP_PLAN_LABELS } from "@/lib/providers";
+import type { ChipPlan } from "@/generated/prisma/enums";
 import type { LucideIcon } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -54,7 +56,7 @@ export default async function NotificacoesPage() {
     );
   }
 
-  const [channels, logs] = await Promise.all([
+  const [channels, rawLogs] = await Promise.all([
     prisma.alertChannel.findMany(),
     prisma.alertLog.findMany({
       orderBy: { createdAt: "desc" },
@@ -62,6 +64,14 @@ export default async function NotificacoesPage() {
       include: { phoneNumber: { include: { org: true } }, channel: true },
     }),
   ]);
+
+  const logs = rawLogs.map((l) => ({
+    ...l,
+    chipPlanChange:
+      l.payload && typeof l.payload === "object" && (l.payload as { event?: string }).event === "chip_plan_changed"
+        ? (l.payload as { from: string | null; to: string })
+        : null,
+  }));
 
   const activeCount = channels.filter((c) => c.enabled).length;
 
@@ -164,6 +174,7 @@ function LogsCard({
     createdAt: Date;
     phoneNumber: { label: string; org: { name: string } };
     channel: { kind: string } | null;
+    chipPlanChange: { from: string | null; to: string } | null;
   }[];
 }) {
   return (
@@ -173,22 +184,37 @@ function LogsCard({
         <p className="type-body-sm text-ink-3">Nenhuma notificação disparada ainda.</p>
       ) : (
         <div className="flex flex-col divide-y divide-line-2">
-          {logs.map((l) => (
-            <div key={l.id} className="flex flex-col gap-1 py-2.5 text-sm">
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate">
-                  {l.phoneNumber.label} →{" "}
-                  {l.channel ? KIND_LABELS[l.channel.kind] ?? l.channel.kind : "E-mail pessoal"}
-                </span>
-                <span className={l.ok ? "text-accent-deep" : "text-danger-deep"}>
-                  {l.ok ? "ok" : `falhou · ${l.error ?? "erro"}`}
+          {logs.map((l) =>
+            l.chipPlanChange ? (
+              <div key={l.id} className="flex flex-col gap-1 py-2.5 text-sm">
+                <div className="flex items-center gap-2">
+                  <BatteryCharging size={13} className="shrink-0 text-ink-3" />
+                  <span className="truncate">
+                    {l.phoneNumber.label} → plano{" "}
+                    {CHIP_PLAN_LABELS[l.chipPlanChange.to as ChipPlan] ?? l.chipPlanChange.to}
+                  </span>
+                </div>
+                <span className="type-meta text-ink-3">
+                  {l.phoneNumber.org.name} · {l.createdAt.toLocaleString("pt-BR")}
                 </span>
               </div>
-              <span className="type-meta text-ink-3">
-                {l.phoneNumber.org.name} · {l.createdAt.toLocaleString("pt-BR")}
-              </span>
-            </div>
-          ))}
+            ) : (
+              <div key={l.id} className="flex flex-col gap-1 py-2.5 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate">
+                    {l.phoneNumber.label} →{" "}
+                    {l.channel ? KIND_LABELS[l.channel.kind] ?? l.channel.kind : "E-mail pessoal"}
+                  </span>
+                  <span className={l.ok ? "text-accent-deep" : "text-danger-deep"}>
+                    {l.ok ? "ok" : `falhou · ${l.error ?? "erro"}`}
+                  </span>
+                </div>
+                <span className="type-meta text-ink-3">
+                  {l.phoneNumber.org.name} · {l.createdAt.toLocaleString("pt-BR")}
+                </span>
+              </div>
+            ),
+          )}
         </div>
       )}
     </div>

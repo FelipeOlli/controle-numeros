@@ -162,7 +162,7 @@ const rechargeSchema = z.object({
  * guarda só observações (ex.: dia do vencimento da fatura).
  */
 export async function updateRecharge(orgSlug: string, numberId: string, formData: FormData) {
-  const { org, role } = await requireOrg(orgSlug);
+  const { org, role, userId } = await requireOrg(orgSlug);
   requireRole(role, ["OWNER", "ADMIN"]);
 
   const number = await prisma.phoneNumber.findUnique({ where: { id: numberId } });
@@ -180,6 +180,27 @@ export async function updateRecharge(orgSlug: string, numberId: string, formData
 
   const chipPlan = data.chipPlan ?? "PRE_PAGO";
   const willTrackRecharge = tracksRecharge(number.origin, chipPlan);
+
+  if (number.chipPlan !== chipPlan) {
+    console.log(
+      `[recharge] ${number.label} mudou de plano: ${number.chipPlan ?? "—"} → ${chipPlan}`,
+    );
+    await prisma.alertLog.create({
+      data: {
+        orgIdAtDispatch: org.id,
+        phoneNumberId: numberId,
+        notifiedUserId: userId,
+        payload: {
+          event: "chip_plan_changed",
+          phoneLabel: number.label,
+          from: number.chipPlan,
+          to: chipPlan,
+          at: new Date().toISOString(),
+        },
+        ok: true,
+      },
+    });
+  }
 
   await prisma.phoneNumber.update({
     where: { id: numberId },
