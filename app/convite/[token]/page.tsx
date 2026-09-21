@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatDate } from "@/lib/format";
 import { acceptInviteLoggedIn, signupAndAcceptInvite } from "./actions";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -54,7 +55,7 @@ export default async function ConvitePage({
         <p className="type-body-sm text-ink-2">{invite.email}</p>
         <p className="type-meta text-ink-3">
           papel: {ROLE_LABELS[invite.role] ?? invite.role} · expira{" "}
-          {invite.expiresAt.toLocaleDateString("pt-BR")}
+          {formatDate(invite.expiresAt)}
         </p>
       </div>
 

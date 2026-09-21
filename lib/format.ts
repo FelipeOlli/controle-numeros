@@ -1,3 +1,20 @@
+const TIMEZONE = "America/Sao_Paulo";
+
+/**
+ * Data/hora completa no fuso do Brasil — o servidor roda fora do país (UTC),
+ * então `toLocaleString` sem timeZone explícito mostra a hora do servidor,
+ * não a de Brasília. Usar sempre isso (ou formatDate) em vez de chamar
+ * toLocaleString/toLocaleDateString direto num Date.
+ */
+export function formatDateTime(date: Date): string {
+  return date.toLocaleString("pt-BR", { timeZone: TIMEZONE });
+}
+
+/** Só a data, no fuso do Brasil — ver formatDateTime. */
+export function formatDate(date: Date): string {
+  return date.toLocaleDateString("pt-BR", { timeZone: TIMEZONE });
+}
+
 /** "há 2 h", "há 9 d" — meta de linhas da fila de atenção e listas de check. */
 export function timeAgo(date: Date, now: Date = new Date()): string {
   const minutes = Math.max(1, Math.floor((now.getTime() - date.getTime()) / 60000));

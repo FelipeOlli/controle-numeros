@@ -1,5 +1,6 @@
 import { Mail, Webhook, MessageCircle, Radio, UserCog, BatteryCharging } from "lucide-react";
 import { CHIP_PLAN_LABELS } from "@/lib/providers";
+import { formatDateTime } from "@/lib/format";
 import type { ChipPlan } from "@/generated/prisma/enums";
 import type { LucideIcon } from "lucide-react";
 import { prisma } from "@/lib/db";
@@ -200,7 +201,7 @@ function LogsCard({
                     </span>
                   </div>
                   <span className="type-meta text-ink-3">
-                    {l.phoneNumber.org.name} · {l.createdAt.toLocaleString("pt-BR")}
+                    {l.phoneNumber.org.name} · {formatDateTime(l.createdAt)}
                   </span>
                 </div>
               );
@@ -214,7 +215,7 @@ function LogsCard({
                     <span className="truncate">{l.phoneNumber.label} → observações alteradas</span>
                   </div>
                   <span className="type-meta text-ink-3">
-                    {l.phoneNumber.org.name} · {l.createdAt.toLocaleString("pt-BR")}
+                    {l.phoneNumber.org.name} · {formatDateTime(l.createdAt)}
                   </span>
                 </div>
               );
@@ -232,7 +233,7 @@ function LogsCard({
                   </span>
                 </div>
                 <span className="type-meta text-ink-3">
-                  {l.phoneNumber.org.name} · {l.createdAt.toLocaleString("pt-BR")}
+                  {l.phoneNumber.org.name} · {formatDateTime(l.createdAt)}
                 </span>
               </div>
             );

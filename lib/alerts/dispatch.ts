@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { formatDate } from "@/lib/format";
 import type { HealthStatus } from "@/generated/prisma/enums";
 import { sendWebhook, type WebhookConfig } from "@/lib/alerts/webhook";
 import { sendEmailAlert, type EmailConfig } from "@/lib/alerts/email";
@@ -116,7 +117,7 @@ export async function dispatchRechargeReminder(info: {
   phoneLabel: string;
   nextRechargeAt: Date;
 }) {
-  const dueDate = info.nextRechargeAt.toLocaleDateString("pt-BR");
+  const dueDate = formatDate(info.nextRechargeAt);
   const subject = `[Recarga] ${info.phoneLabel} vence em ${dueDate}`;
   const payload = {
     phoneNumberId: info.phoneNumberId,

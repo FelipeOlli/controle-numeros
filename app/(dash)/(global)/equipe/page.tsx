@@ -1,6 +1,7 @@
 import { Clock, Users, ShieldCheck } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { formatDate } from "@/lib/format";
 import { InviteForm } from "./invite-form";
 import { MemberCard } from "./member-card";
 
@@ -121,7 +122,7 @@ export default async function EquipePage() {
                     <span className="truncate font-mono text-xs">{i.email}</span>
                     <span className="whitespace-nowrap text-xs text-ink-3">
                       {i.org.name} · {ROLE_LABELS[i.role] ?? i.role} · expira{" "}
-                      {i.expiresAt.toLocaleDateString("pt-BR")}
+                      {formatDate(i.expiresAt)}
                     </span>
                   </div>
                 ))}
