@@ -152,7 +152,12 @@ export default async function PainelPage() {
 
   const healthyCard = (
     <div className="flex flex-col gap-[14px] rounded-[22px] bg-surface p-[22px_24px]">
-      <span className="type-card-title-sm">Saudáveis</span>
+      <div className="flex flex-wrap items-center gap-2.5">
+        <span className="type-card-title-sm">Saudáveis</span>
+        <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[13px] font-semibold text-accent-deep">
+          {healthyNumbers.length} número{healthyNumbers.length === 1 ? "" : "s"}
+        </span>
+      </div>
       {healthyNumbers.length === 0 ? (
         <p className="type-body-sm text-ink-3">Nenhum número saudável ainda.</p>
       ) : (
