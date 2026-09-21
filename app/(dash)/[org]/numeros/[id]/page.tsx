@@ -40,7 +40,7 @@ export default async function NumberDetailPage({
     notFound();
   }
 
-  const [checks, incidents, chipPlanLogs] = await Promise.all([
+  const [checks, incidents, chipLogs] = await Promise.all([
     prisma.healthCheck.findMany({
       where: { phoneNumberId: id },
       orderBy: { createdAt: "desc" },
@@ -52,21 +52,36 @@ export default async function NumberDetailPage({
       take: 10,
     }),
     prisma.alertLog.findMany({
-      where: { phoneNumberId: id, payload: { path: ["event"], equals: "chip_plan_changed" } },
+      where: {
+        phoneNumberId: id,
+        OR: [
+          { payload: { path: ["event"], equals: "chip_plan_changed" } },
+          { payload: { path: ["event"], equals: "chip_notes_changed" } },
+        ],
+      },
       orderBy: { createdAt: "desc" },
-      take: 20,
+      take: 30,
     }),
   ]);
 
   type HistoryEntry =
     | { kind: "check"; createdAt: Date; check: (typeof checks)[number] }
-    | { kind: "chipPlanChange"; createdAt: Date; from: string | null; to: string };
+    | { kind: "chipPlanChange"; createdAt: Date; from: string | null; to: string }
+    | { kind: "chipNotesChange"; createdAt: Date; from: string | null; to: string | null };
 
   const historyEntries: HistoryEntry[] = [
     ...checks.map((c) => ({ kind: "check" as const, createdAt: c.createdAt, check: c })),
-    ...chipPlanLogs.map((l) => {
-      const payload = l.payload as { from: string | null; to: string };
-      return { kind: "chipPlanChange" as const, createdAt: l.createdAt, from: payload.from, to: payload.to };
+    ...chipLogs.map((l) => {
+      const payload = l.payload as { event: string; from: string | null; to: string | null };
+      if (payload.event === "chip_plan_changed") {
+        return {
+          kind: "chipPlanChange" as const,
+          createdAt: l.createdAt,
+          from: payload.from,
+          to: payload.to as string,
+        };
+      }
+      return { kind: "chipNotesChange" as const, createdAt: l.createdAt, from: payload.from, to: payload.to };
     }),
   ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
@@ -131,6 +146,12 @@ export default async function NumberDetailPage({
         <span className="type-meta text-ink-3">
           desde {(number.lastCheckAt ?? number.updatedAt).toLocaleString("pt-BR")}
         </span>
+        {isZapi && (
+          <span className="type-meta text-ink-3">
+            Z-API sincronizado{" "}
+            {number.lastSyncAt ? number.lastSyncAt.toLocaleString("pt-BR") : "nunca"}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -152,39 +173,63 @@ export default async function NumberDetailPage({
         <p className="type-body-sm text-ink-3">Nenhum check registrado ainda.</p>
       ) : (
         <div className="flex flex-col gap-2">
-          {historyEntries.map((entry) =>
-            entry.kind === "check" ? (
+          {historyEntries.map((entry) => {
+            if (entry.kind === "check") {
+              return (
+                <div
+                  key={entry.check.id}
+                  className="grid grid-cols-1 gap-1.5 rounded-[15px] bg-row px-4 py-3 min-[900px]:grid-cols-[150px_78px_1fr_auto] min-[900px]:items-center min-[900px]:gap-3"
+                >
+                  <StatusPill status={entry.check.status} />
+                  <span className="font-mono text-xs text-ink-3">score {entry.check.score}</span>
+                  <span className="type-body-sm truncate text-ink-2">{entry.check.observation || "—"}</span>
+                  <span className="type-meta whitespace-nowrap text-ink-3">
+                    {entry.check.createdAt.toLocaleString("pt-BR")} ·{" "}
+                    {entry.check.source === "API" ? "automático" : "manual"}
+                  </span>
+                </div>
+              );
+            }
+
+            if (entry.kind === "chipPlanChange") {
+              return (
+                <div
+                  key={`plan-${entry.createdAt.getTime()}`}
+                  className="grid grid-cols-1 gap-1.5 rounded-[15px] bg-row px-4 py-3 min-[900px]:grid-cols-[150px_78px_1fr_auto] min-[900px]:items-center min-[900px]:gap-3"
+                >
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-2">
+                    <BatteryCharging size={13} className="text-accent" />
+                    Plano
+                  </span>
+                  <span />
+                  <span className="type-body-sm truncate text-ink-2">
+                    {CHIP_PLAN_LABELS[entry.from as ChipPlan] ?? "—"} →{" "}
+                    {CHIP_PLAN_LABELS[entry.to as ChipPlan] ?? entry.to}
+                  </span>
+                  <span className="type-meta whitespace-nowrap text-ink-3">
+                    {entry.createdAt.toLocaleString("pt-BR")}
+                  </span>
+                </div>
+              );
+            }
+
+            return (
               <div
-                key={entry.check.id}
-                className="grid grid-cols-1 gap-1.5 rounded-[15px] bg-row px-4 py-3 min-[900px]:grid-cols-[150px_78px_1fr_auto] min-[900px]:items-center min-[900px]:gap-3"
-              >
-                <StatusPill status={entry.check.status} />
-                <span className="font-mono text-xs text-ink-3">score {entry.check.score}</span>
-                <span className="type-body-sm truncate text-ink-2">{entry.check.observation || "—"}</span>
-                <span className="type-meta whitespace-nowrap text-ink-3">
-                  {entry.check.createdAt.toLocaleString("pt-BR")} ·{" "}
-                  {entry.check.source === "API" ? "automático" : "manual"}
-                </span>
-              </div>
-            ) : (
-              <div
-                key={`plan-${entry.createdAt.getTime()}`}
+                key={`notes-${entry.createdAt.getTime()}`}
                 className="grid grid-cols-1 gap-1.5 rounded-[15px] bg-row px-4 py-3 min-[900px]:grid-cols-[150px_78px_1fr_auto] min-[900px]:items-center min-[900px]:gap-3"
               >
                 <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-2">
-                  <BatteryCharging size={13} className="text-accent" />
-                  Plano
+                  <History size={13} className="text-accent" />
+                  Observações
                 </span>
                 <span />
-                <span className="type-body-sm truncate text-ink-2">
-                  {CHIP_PLAN_LABELS[entry.from as ChipPlan] ?? "—"} → {CHIP_PLAN_LABELS[entry.to as ChipPlan] ?? entry.to}
-                </span>
+                <span className="type-body-sm truncate text-ink-2">{entry.to || "removidas"}</span>
                 <span className="type-meta whitespace-nowrap text-ink-3">
                   {entry.createdAt.toLocaleString("pt-BR")}
                 </span>
               </div>
-            ),
-          )}
+            );
+          })}
         </div>
       )}
     </div>

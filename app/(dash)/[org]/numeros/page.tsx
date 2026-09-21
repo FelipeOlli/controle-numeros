@@ -5,7 +5,7 @@ import { requireOrg } from "@/lib/tenant";
 import { ScoreRing } from "@/components/score-ring";
 import { StatusPill } from "@/components/status-pill";
 import { ORIGIN_LABELS, PLATFORM_LABELS, CHIP_PLAN_LABELS, tracksRecharge } from "@/lib/providers";
-import { dueDateStatus } from "@/lib/format";
+import { dueDateStatus, timeAgo } from "@/lib/format";
 import { AddNumberDialog } from "./add-number-dialog";
 import { ZapiCredentialForm } from "./zapi-credential-form";
 import type { HealthStatus } from "@/generated/prisma/enums";
@@ -80,7 +80,13 @@ export default async function NumerosPage({
         })}
       </div>
 
-      {canManage && <ZapiCredentialForm orgSlug={orgSlug} configured={Boolean(zapiCredential)} />}
+      {canManage && (
+        <ZapiCredentialForm
+          orgSlug={orgSlug}
+          configured={Boolean(zapiCredential)}
+          lastSyncAt={zapiCredential?.lastSyncAt ?? null}
+        />
+      )}
 
       {numbers.length === 0 && (
         <div className="flex flex-col items-center gap-2 rounded-[22px] border-[1.5px] border-dashed border-line-dashed bg-surface py-16 text-ink-3">
@@ -124,6 +130,11 @@ export default async function NumerosPage({
                 {n.origin === "CHIP_FISICO" && n.chipPlan === "POS_PAGO" && (
                   <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
                     {CHIP_PLAN_LABELS.POS_PAGO}
+                  </span>
+                )}
+                {n.platforms.includes("ZAPI") && (
+                  <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
+                    {n.lastSyncAt ? `Sincronizado ${timeAgo(n.lastSyncAt)}` : "Nunca sincronizado"}
                   </span>
                 )}
               </div>

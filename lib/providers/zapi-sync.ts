@@ -49,6 +49,13 @@ export async function syncZapiForOrg(orgId: string): Promise<ZapiSyncResult> {
       );
       checked += 1;
 
+      // Verificado agora, independente de status ter mudado — diferente de
+      // lastCheckAt (só muda com a mudança de status, via recordHealthCheck).
+      await prisma.phoneNumber.update({
+        where: { id: number.id },
+        data: { lastSyncAt: new Date() },
+      });
+
       const status: HealthStatus = instanceStatus.connected ? "GREEN" : "RED";
       if (status === number.currentStatus) continue;
 
@@ -67,6 +74,14 @@ export async function syncZapiForOrg(orgId: string): Promise<ZapiSyncResult> {
       errors.push(`${number.label}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
+
+  // A tentativa de sync da empresa aconteceu, mesmo que 0 números tenham
+  // sido verificados ou todos tenham dado erro — reflete "quando rodou",
+  // não "quando deu certo".
+  await prisma.providerCredential.update({
+    where: { orgId_platform: { orgId, platform: "ZAPI" } },
+    data: { lastSyncAt: new Date() },
+  });
 
   return {
     checked,

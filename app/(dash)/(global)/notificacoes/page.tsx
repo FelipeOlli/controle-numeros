@@ -65,13 +65,16 @@ export default async function NotificacoesPage() {
     }),
   ]);
 
-  const logs = rawLogs.map((l) => ({
-    ...l,
-    chipPlanChange:
-      l.payload && typeof l.payload === "object" && (l.payload as { event?: string }).event === "chip_plan_changed"
-        ? (l.payload as { from: string | null; to: string })
-        : null,
-  }));
+  const logs = rawLogs.map((l) => {
+    const event =
+      l.payload && typeof l.payload === "object" ? (l.payload as { event?: string }).event : undefined;
+    return {
+      ...l,
+      chipPlanChange: event === "chip_plan_changed" ? (l.payload as { from: string | null; to: string }) : null,
+      chipNotesChange:
+        event === "chip_notes_changed" ? (l.payload as { from: string | null; to: string | null }) : null,
+    };
+  });
 
   const activeCount = channels.filter((c) => c.enabled).length;
 
@@ -175,6 +178,7 @@ function LogsCard({
     phoneNumber: { label: string; org: { name: string } };
     channel: { kind: string } | null;
     chipPlanChange: { from: string | null; to: string } | null;
+    chipNotesChange: { from: string | null; to: string | null } | null;
   }[];
 }) {
   return (
@@ -184,21 +188,39 @@ function LogsCard({
         <p className="type-body-sm text-ink-3">Nenhuma notificação disparada ainda.</p>
       ) : (
         <div className="flex flex-col divide-y divide-line-2">
-          {logs.map((l) =>
-            l.chipPlanChange ? (
-              <div key={l.id} className="flex flex-col gap-1 py-2.5 text-sm">
-                <div className="flex items-center gap-2">
-                  <BatteryCharging size={13} className="shrink-0 text-ink-3" />
-                  <span className="truncate">
-                    {l.phoneNumber.label} → plano{" "}
-                    {CHIP_PLAN_LABELS[l.chipPlanChange.to as ChipPlan] ?? l.chipPlanChange.to}
+          {logs.map((l) => {
+            if (l.chipPlanChange) {
+              return (
+                <div key={l.id} className="flex flex-col gap-1 py-2.5 text-sm">
+                  <div className="flex items-center gap-2">
+                    <BatteryCharging size={13} className="shrink-0 text-ink-3" />
+                    <span className="truncate">
+                      {l.phoneNumber.label} → plano{" "}
+                      {CHIP_PLAN_LABELS[l.chipPlanChange.to as ChipPlan] ?? l.chipPlanChange.to}
+                    </span>
+                  </div>
+                  <span className="type-meta text-ink-3">
+                    {l.phoneNumber.org.name} · {l.createdAt.toLocaleString("pt-BR")}
                   </span>
                 </div>
-                <span className="type-meta text-ink-3">
-                  {l.phoneNumber.org.name} · {l.createdAt.toLocaleString("pt-BR")}
-                </span>
-              </div>
-            ) : (
+              );
+            }
+
+            if (l.chipNotesChange) {
+              return (
+                <div key={l.id} className="flex flex-col gap-1 py-2.5 text-sm">
+                  <div className="flex items-center gap-2">
+                    <BatteryCharging size={13} className="shrink-0 text-ink-3" />
+                    <span className="truncate">{l.phoneNumber.label} → observações alteradas</span>
+                  </div>
+                  <span className="type-meta text-ink-3">
+                    {l.phoneNumber.org.name} · {l.createdAt.toLocaleString("pt-BR")}
+                  </span>
+                </div>
+              );
+            }
+
+            return (
               <div key={l.id} className="flex flex-col gap-1 py-2.5 text-sm">
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate">
@@ -213,8 +235,8 @@ function LogsCard({
                   {l.phoneNumber.org.name} · {l.createdAt.toLocaleString("pt-BR")}
                 </span>
               </div>
-            ),
-          )}
+            );
+          })}
         </div>
       )}
     </div>

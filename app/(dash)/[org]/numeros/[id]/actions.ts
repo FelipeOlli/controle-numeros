@@ -180,6 +180,7 @@ export async function updateRecharge(orgSlug: string, numberId: string, formData
 
   const chipPlan = data.chipPlan ?? "PRE_PAGO";
   const willTrackRecharge = tracksRecharge(number.origin, chipPlan);
+  const notes = willTrackRecharge ? number.notes : (data.notes ?? null);
 
   if (number.chipPlan !== chipPlan) {
     console.log(
@@ -202,6 +203,25 @@ export async function updateRecharge(orgSlug: string, numberId: string, formData
     });
   }
 
+  if (number.notes !== notes) {
+    console.log(`[recharge] ${number.label} teve as observações alteradas`);
+    await prisma.alertLog.create({
+      data: {
+        orgIdAtDispatch: org.id,
+        phoneNumberId: numberId,
+        notifiedUserId: userId,
+        payload: {
+          event: "chip_notes_changed",
+          phoneLabel: number.label,
+          from: number.notes,
+          to: notes,
+          at: new Date().toISOString(),
+        },
+        ok: true,
+      },
+    });
+  }
+
   await prisma.phoneNumber.update({
     where: { id: numberId },
     data: {
@@ -210,7 +230,7 @@ export async function updateRecharge(orgSlug: string, numberId: string, formData
       lastRechargeAt: willTrackRecharge && data.lastRechargeAt ? new Date(data.lastRechargeAt) : null,
       nextRechargeAt: willTrackRecharge && data.nextRechargeAt ? new Date(data.nextRechargeAt) : null,
       rechargeReminderSentAt: null,
-      notes: willTrackRecharge ? number.notes : (data.notes ?? null),
+      notes,
     },
   });
 

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { KeyRound, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { timeAgo } from "@/lib/format";
 import { saveZapiCredential, syncZapiNow } from "./actions";
 
 /**
@@ -14,9 +15,11 @@ import { saveZapiCredential, syncZapiNow } from "./actions";
 export function ZapiCredentialForm({
   orgSlug,
   configured,
+  lastSyncAt,
 }: {
   orgSlug: string;
   configured: boolean;
+  lastSyncAt: Date | null;
 }) {
   const [savePending, startSave] = useTransition();
   const [syncPending, startSync] = useTransition();
@@ -76,7 +79,9 @@ export function ZapiCredentialForm({
             <RefreshCw size={13} className={syncPending ? "animate-spin" : undefined} />
             Sincronizar agora
           </Button>
-          {syncMessage && <span className="type-meta text-ink-3">{syncMessage}</span>}
+          <span className="type-meta text-ink-3">
+            {syncMessage ?? `Última sincronização: ${lastSyncAt ? timeAgo(lastSyncAt) : "nunca"}`}
+          </span>
         </div>
       )}
     </div>

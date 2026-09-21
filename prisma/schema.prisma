@@ -148,6 +148,11 @@ model PhoneNumber {
   /// (cache, não histórico). Nulo pra provedores/números sem esse dado.
   providerDueAt         DateTime?
   providerPaymentStatus String?
+  /// Quando esse número foi verificado no provedor (Z-API) pela última vez,
+  /// mesmo sem mudança de status — diferente de lastCheckAt, que só muda
+  /// quando o status muda de fato. Usado pra não marcar como "sem dados" um
+  /// número estável que continua sendo sincronizado normalmente.
+  lastSyncAt DateTime?
   /// Recarga de crédito do chip físico — sem crédito a cada ~3 meses, a
   /// operadora recolhe o número. Só relevante pra origem CHIP_FISICO e
   /// chipPlan PRE_PAGO (conta/plano é faturado, não recarrega).
@@ -242,6 +247,9 @@ model ProviderCredential {
   platform  NumberPlatform
   config    Json
   createdAt DateTime       @default(now())
+  /// Quando a sincronização dessa credencial rodou pela última vez (manual
+  /// ou pelo worker), independente de ter dado certo ou não.
+  lastSyncAt DateTime?
 
   org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 

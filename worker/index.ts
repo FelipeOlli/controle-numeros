@@ -17,13 +17,25 @@ const prisma = new PrismaClient({ adapter });
  * É aqui que os coletores automáticos (fase 2) vão encaixar: rodam antes
  * desta função e gravam HealthCheck com source "API", então a maioria dos
  * números nunca chega a ficar "stale".
+ *
+ * Número Z-API estável não muda de status, então lastCheckAt nunca atualiza
+ * mesmo sincronizando a cada 10min (lib/providers/zapi-sync.ts só grava
+ * HealthCheck quando o status muda de fato). Por isso, pra Z-API, usa o mais
+ * recente entre lastCheckAt e lastSyncAt — sem isso o worker marcaria como
+ * "sem dados" um número que o Z-API acabou de confirmar conectado.
  */
 async function markStaleNumbers() {
   const candidates = await prisma.phoneNumber.findMany({
     where: { active: true, currentStatus: { not: "UNKNOWN" } },
   });
 
-  const stale = candidates.filter((n) => isStale(n.lastCheckAt));
+  const stale = candidates.filter((n) => {
+    const effectiveLastCheck =
+      n.platforms.includes("ZAPI") && n.lastSyncAt && (!n.lastCheckAt || n.lastSyncAt > n.lastCheckAt)
+        ? n.lastSyncAt
+        : n.lastCheckAt;
+    return isStale(effectiveLastCheck);
+  });
 
   for (const number of stale) {
     const status = "UNKNOWN" as const;
