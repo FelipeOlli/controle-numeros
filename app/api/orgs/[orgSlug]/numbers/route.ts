@@ -3,11 +3,12 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireOrg, requireRole } from "@/lib/tenant";
 import { handleApiError } from "@/lib/api";
-import { ORIGIN_LABELS, PLATFORM_LABELS, resolvePlatforms } from "@/lib/providers";
-import type { NumberOrigin, NumberPlatform } from "@/generated/prisma/enums";
+import { ORIGIN_LABELS, PLATFORM_LABELS, CHIP_PLAN_LABELS, resolvePlatforms } from "@/lib/providers";
+import type { NumberOrigin, NumberPlatform, ChipPlan } from "@/generated/prisma/enums";
 
 const originValues = Object.keys(ORIGIN_LABELS) as [NumberOrigin, ...NumberOrigin[]];
 const platformValues = Object.keys(PLATFORM_LABELS) as [NumberPlatform, ...NumberPlatform[]];
+const chipPlanValues = Object.keys(CHIP_PLAN_LABELS) as [ChipPlan, ...ChipPlan[]];
 
 const createSchema = z.object({
   label: z.string().min(1),
@@ -17,6 +18,7 @@ const createSchema = z.object({
   externalId: z.string().optional(),
   tier: z.string().optional(),
   notes: z.string().optional(),
+  chipPlan: z.enum(chipPlanValues).optional(),
 });
 
 export async function GET(

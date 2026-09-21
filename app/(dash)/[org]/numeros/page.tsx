@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireOrg } from "@/lib/tenant";
 import { ScoreRing } from "@/components/score-ring";
 import { StatusPill } from "@/components/status-pill";
-import { ORIGIN_LABELS, PLATFORM_LABELS } from "@/lib/providers";
+import { ORIGIN_LABELS, PLATFORM_LABELS, CHIP_PLAN_LABELS, tracksRecharge } from "@/lib/providers";
 import { dueDateStatus } from "@/lib/format";
 import { AddNumberDialog } from "./add-number-dialog";
 import { ZapiCredentialForm } from "./zapi-credential-form";
@@ -113,7 +113,7 @@ export default async function NumerosPage({
                     {PLATFORM_LABELS[platform]}
                   </span>
                 ))}
-                {n.origin === "CHIP_FISICO" && n.nextRechargeAt && (() => {
+                {tracksRecharge(n.origin, n.chipPlan) && n.nextRechargeAt && (() => {
                   const { colorClass, label } = dueDateStatus(n.nextRechargeAt);
                   return (
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${colorClass}`}>
@@ -121,6 +121,11 @@ export default async function NumerosPage({
                     </span>
                   );
                 })()}
+                {n.origin === "CHIP_FISICO" && n.chipPlan === "POS_PAGO" && (
+                  <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
+                    {CHIP_PLAN_LABELS.POS_PAGO}
+                  </span>
+                )}
               </div>
               <StatusPill status={n.currentStatus} />
             </div>

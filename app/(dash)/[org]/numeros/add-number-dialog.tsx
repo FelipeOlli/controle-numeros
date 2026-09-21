@@ -12,9 +12,9 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { PlatformCheckboxes } from "@/components/platform-checkboxes";
-import { ORIGIN_LABELS, CARRIER_LABELS } from "@/lib/providers";
+import { ORIGIN_LABELS, CARRIER_LABELS, CHIP_PLAN_LABELS } from "@/lib/providers";
 import { createNumber } from "./actions";
-import type { NumberOrigin, NumberPlatform } from "@/generated/prisma/enums";
+import type { NumberOrigin, NumberPlatform, ChipPlan } from "@/generated/prisma/enums";
 
 const selectClass =
   "rounded-[14px] border border-line bg-canvas px-[14px] py-3 text-[15px] text-ink outline-none focus:border-accent focus:bg-surface";
@@ -23,6 +23,7 @@ export function AddNumberDialog({ orgSlug }: { orgSlug: string }) {
   const [open, setOpen] = useState(false);
   const [origin, setOrigin] = useState<NumberOrigin>("CHIP_FISICO");
   const [platforms, setPlatforms] = useState<NumberPlatform[]>([]);
+  const [chipPlan, setChipPlan] = useState<ChipPlan>("PRE_PAGO");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -70,20 +71,49 @@ export function AddNumberDialog({ orgSlug }: { orgSlug: string }) {
           {origin === "CHIP_FISICO" && (
             <>
               <div className="flex flex-col gap-1.5">
-                <label className="type-form-label text-ink-2">Operadora</label>
-                <select name="carrier" defaultValue="" className={selectClass}>
-                  <option value="">Selecione</option>
-                  {Object.entries(CARRIER_LABELS).map(([value, label]) => (
+                <label className="type-form-label text-ink-2">Plano</label>
+                <select
+                  name="chipPlan"
+                  value={chipPlan}
+                  onChange={(e) => setChipPlan(e.target.value as ChipPlan)}
+                  className={selectClass}
+                >
+                  {Object.entries(CHIP_PLAN_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>
                       {label}
                     </option>
                   ))}
                 </select>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="type-form-label text-ink-2">Última recarga</label>
-                <Input name="lastRechargeAt" type="date" required />
-              </div>
+              {chipPlan === "PRE_PAGO" ? (
+                <>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="type-form-label text-ink-2">Operadora</label>
+                    <select name="carrier" defaultValue="" className={selectClass}>
+                      <option value="">Selecione</option>
+                      {Object.entries(CARRIER_LABELS).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="type-form-label text-ink-2">Última recarga</label>
+                    <Input name="lastRechargeAt" type="date" required />
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <label className="type-form-label text-ink-2">Observações</label>
+                  <textarea
+                    name="notes"
+                    rows={2}
+                    placeholder="Ex.: fatura vence dia 10, titular..."
+                    className={`${selectClass} resize-none`}
+                  />
+                </div>
+              )}
             </>
           )}
           <PlatformCheckboxes origin={origin} selected={platforms} onChange={setPlatforms} />

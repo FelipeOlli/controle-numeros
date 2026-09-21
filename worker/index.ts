@@ -62,6 +62,7 @@ async function checkRechargeReminders() {
     where: {
       active: true,
       origin: "CHIP_FISICO",
+      chipPlan: { not: "POS_PAGO" },
       nextRechargeAt: { not: null },
       rechargeReminderSentAt: null,
     },

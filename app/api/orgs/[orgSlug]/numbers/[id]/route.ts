@@ -3,12 +3,17 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireOrg, requireRole, TenantError } from "@/lib/tenant";
 import { handleApiError } from "@/lib/api";
+import { CHIP_PLAN_LABELS } from "@/lib/providers";
+import type { ChipPlan } from "@/generated/prisma/enums";
+
+const chipPlanValues = Object.keys(CHIP_PLAN_LABELS) as [ChipPlan, ...ChipPlan[]];
 
 const updateSchema = z.object({
   label: z.string().min(1).optional(),
   tier: z.string().optional(),
   notes: z.string().optional(),
   active: z.boolean().optional(),
+  chipPlan: z.enum(chipPlanValues).optional(),
 });
 
 async function loadOwnedNumber(orgId: string, id: string) {

@@ -41,6 +41,14 @@ enum Carrier {
   OUTRA
 }
 
+/// Plano do chip físico — só relevante pra origem CHIP_FISICO. Pré-pago
+/// recarrega (ver campos de recarga em PhoneNumber); conta/plano é faturado
+/// e não usa esses campos.
+enum ChipPlan {
+  PRE_PAGO
+  POS_PAGO
+}
+
 enum HealthStatus {
   GREEN
   YELLOW
@@ -141,7 +149,9 @@ model PhoneNumber {
   providerDueAt         DateTime?
   providerPaymentStatus String?
   /// Recarga de crédito do chip físico — sem crédito a cada ~3 meses, a
-  /// operadora recolhe o número. Só relevante pra origem CHIP_FISICO.
+  /// operadora recolhe o número. Só relevante pra origem CHIP_FISICO e
+  /// chipPlan PRE_PAGO (conta/plano é faturado, não recarrega).
+  chipPlan       ChipPlan?
   carrier        Carrier?
   lastRechargeAt DateTime?
   nextRechargeAt DateTime?

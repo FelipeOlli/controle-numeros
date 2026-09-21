@@ -11,14 +11,17 @@ import {
   ORIGIN_LABELS,
   PLATFORM_LABELS,
   CARRIER_LABELS,
+  CHIP_PLAN_LABELS,
   resolvePlatforms,
   computeNextRecharge,
+  tracksRecharge,
 } from "@/lib/providers";
-import type { NumberOrigin, NumberPlatform, Carrier } from "@/generated/prisma/enums";
+import type { NumberOrigin, NumberPlatform, Carrier, ChipPlan } from "@/generated/prisma/enums";
 
 const originValues = Object.keys(ORIGIN_LABELS) as [NumberOrigin, ...NumberOrigin[]];
 const platformValues = Object.keys(PLATFORM_LABELS) as [NumberPlatform, ...NumberPlatform[]];
 const carrierValues = Object.keys(CARRIER_LABELS) as [Carrier, ...Carrier[]];
+const chipPlanValues = Object.keys(CHIP_PLAN_LABELS) as [ChipPlan, ...ChipPlan[]];
 
 const checkSchema = z.object({
   status: z.enum(SELECTABLE_STATUSES),
@@ -144,15 +147,19 @@ export async function updateZapiBilling(orgSlug: string, numberId: string, formD
 }
 
 const rechargeSchema = z.object({
+  chipPlan: z.enum(chipPlanValues).optional(),
   carrier: z.enum(carrierValues).optional(),
   lastRechargeAt: z.string().optional(),
   nextRechargeAt: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 /**
  * Recarga do chip físico — sem crédito a cada ~3 meses, a operadora recolhe
  * o número. Zera rechargeReminderSentAt sempre que a data muda, pra poder
  * alertar de novo no próximo ciclo (lib/alerts/dispatch.ts, via worker).
+ * Conta/plano (chipPlan POS_PAGO) não recarrega — limpa operadora/datas e
+ * guarda só observações (ex.: dia do vencimento da fatura).
  */
 export async function updateRecharge(orgSlug: string, numberId: string, formData: FormData) {
   const { org, role } = await requireOrg(orgSlug);
@@ -164,18 +171,25 @@ export async function updateRecharge(orgSlug: string, numberId: string, formData
   }
 
   const data = rechargeSchema.parse({
+    chipPlan: formData.get("chipPlan") || undefined,
     carrier: formData.get("carrier") || undefined,
     lastRechargeAt: formData.get("lastRechargeAt") || undefined,
     nextRechargeAt: formData.get("nextRechargeAt") || undefined,
+    notes: formData.get("notes") || undefined,
   });
+
+  const chipPlan = data.chipPlan ?? "PRE_PAGO";
+  const willTrackRecharge = tracksRecharge(number.origin, chipPlan);
 
   await prisma.phoneNumber.update({
     where: { id: numberId },
     data: {
-      carrier: data.carrier ?? null,
-      lastRechargeAt: data.lastRechargeAt ? new Date(data.lastRechargeAt) : null,
-      nextRechargeAt: data.nextRechargeAt ? new Date(data.nextRechargeAt) : null,
+      chipPlan,
+      carrier: willTrackRecharge ? (data.carrier ?? null) : null,
+      lastRechargeAt: willTrackRecharge && data.lastRechargeAt ? new Date(data.lastRechargeAt) : null,
+      nextRechargeAt: willTrackRecharge && data.nextRechargeAt ? new Date(data.nextRechargeAt) : null,
       rechargeReminderSentAt: null,
+      notes: willTrackRecharge ? number.notes : (data.notes ?? null),
     },
   });
 
@@ -190,6 +204,9 @@ export async function quickRecharge(orgSlug: string, numberId: string) {
   const number = await prisma.phoneNumber.findUnique({ where: { id: numberId } });
   if (!number || number.orgId !== org.id) {
     throw new TenantError("Número não encontrado", 404);
+  }
+  if (!tracksRecharge(number.origin, number.chipPlan)) {
+    throw new Error("Este número não recarrega (chip físico conta/plano)");
   }
 
   const now = new Date();

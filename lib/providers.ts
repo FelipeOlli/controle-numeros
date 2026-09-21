@@ -1,4 +1,4 @@
-import type { NumberOrigin, NumberPlatform, Carrier } from "@/generated/prisma/enums";
+import type { NumberOrigin, NumberPlatform, Carrier, ChipPlan } from "@/generated/prisma/enums";
 
 /** Como o número foi adquirido. */
 export const ORIGIN_LABELS: Record<NumberOrigin, string> = {
@@ -26,6 +26,12 @@ export const CARRIER_LABELS: Record<Carrier, string> = {
   OUTRA: "Outra",
 };
 
+/** Plano do chip físico — pré-pago recarrega, conta/plano é faturado. */
+export const CHIP_PLAN_LABELS: Record<ChipPlan, string> = {
+  PRE_PAGO: "Pré-pago",
+  POS_PAGO: "Conta/plano",
+};
+
 /** Sem crédito a cada ~3 meses, a operadora recolhe o chip físico. */
 export const RECHARGE_INTERVAL_DAYS = 90;
 
@@ -34,6 +40,15 @@ export function computeNextRecharge(lastRechargeAt: Date): Date {
   const next = new Date(lastRechargeAt);
   next.setDate(next.getDate() + RECHARGE_INTERVAL_DAYS);
   return next;
+}
+
+/**
+ * Só chip físico pré-pago recarrega — conta/plano é faturado e não usa os
+ * campos de recarga. Única fonte da verdade dessa regra; usada na criação,
+ * nas telas e no worker de lembretes.
+ */
+export function tracksRecharge(origin: NumberOrigin, chipPlan: ChipPlan | null): boolean {
+  return origin === "CHIP_FISICO" && chipPlan !== "POS_PAGO";
 }
 
 /**

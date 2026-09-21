@@ -8,7 +8,7 @@ import { requireOrg } from "@/lib/tenant";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/status-pill";
 import { SELECTABLE_STATUSES, STATUS_LABELS } from "@/lib/health";
-import { ORIGIN_LABELS, PLATFORM_LABELS } from "@/lib/providers";
+import { ORIGIN_LABELS, PLATFORM_LABELS, CHIP_PLAN_LABELS, tracksRecharge } from "@/lib/providers";
 import { dueDateStatus } from "@/lib/format";
 import { createCheck } from "./actions";
 import { HealthChart } from "./health-chart";
@@ -71,12 +71,20 @@ export default async function NumberDetailPage({
     );
   }
 
+  const isPostpaidChip = isChipFisico && number.chipPlan === "POS_PAGO";
+
   let rechargePill: ReactNode = null;
-  if (isChipFisico && number.nextRechargeAt) {
+  if (tracksRecharge(number.origin, number.chipPlan) && number.nextRechargeAt) {
     const { colorClass, label } = dueDateStatus(number.nextRechargeAt);
     rechargePill = (
       <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${colorClass}`}>
         Recarga: {label}
+      </span>
+    );
+  } else if (isPostpaidChip) {
+    rechargePill = (
+      <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
+        {CHIP_PLAN_LABELS.POS_PAGO}
       </span>
     );
   }
@@ -222,9 +230,11 @@ export default async function NumberDetailPage({
     <RechargeForm
       orgSlug={orgSlug}
       numberId={id}
+      chipPlan={number.chipPlan}
       carrier={number.carrier}
       lastRechargeAt={number.lastRechargeAt}
       nextRechargeAt={number.nextRechargeAt}
+      notes={number.notes}
     />
   );
 

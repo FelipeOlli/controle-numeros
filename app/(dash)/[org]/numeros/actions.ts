@@ -10,14 +10,17 @@ import {
   ORIGIN_LABELS,
   PLATFORM_LABELS,
   CARRIER_LABELS,
+  CHIP_PLAN_LABELS,
   resolvePlatforms,
   computeNextRecharge,
+  tracksRecharge,
 } from "@/lib/providers";
-import type { NumberOrigin, NumberPlatform, Carrier } from "@/generated/prisma/enums";
+import type { NumberOrigin, NumberPlatform, Carrier, ChipPlan } from "@/generated/prisma/enums";
 
 const originValues = Object.keys(ORIGIN_LABELS) as [NumberOrigin, ...NumberOrigin[]];
 const platformValues = Object.keys(PLATFORM_LABELS) as [NumberPlatform, ...NumberPlatform[]];
 const carrierValues = Object.keys(CARRIER_LABELS) as [Carrier, ...Carrier[]];
+const chipPlanValues = Object.keys(CHIP_PLAN_LABELS) as [ChipPlan, ...ChipPlan[]];
 
 const createSchema = z
   .object({
@@ -27,11 +30,13 @@ const createSchema = z
     platforms: z.array(z.enum(platformValues)),
     externalId: z.string().optional(),
     providerToken: z.string().optional(),
+    chipPlan: z.enum(chipPlanValues).optional(),
     carrier: z.enum(carrierValues).optional(),
     lastRechargeAt: z.string().optional(),
+    notes: z.string().optional(),
   })
-  .refine((data) => data.origin !== "CHIP_FISICO" || data.lastRechargeAt, {
-    message: "Informe a data da última recarga pra números de chip físico",
+  .refine((data) => !tracksRecharge(data.origin, data.chipPlan ?? null) || data.lastRechargeAt, {
+    message: "Informe a data da última recarga pra chip físico pré-pago",
     path: ["lastRechargeAt"],
   });
 
@@ -46,11 +51,16 @@ export async function createNumber(orgSlug: string, formData: FormData) {
     platforms: formData.getAll("platforms"),
     externalId: formData.get("externalId") || undefined,
     providerToken: formData.get("providerToken") || undefined,
+    chipPlan: formData.get("chipPlan") || undefined,
     carrier: formData.get("carrier") || undefined,
     lastRechargeAt: formData.get("lastRechargeAt") || undefined,
+    notes: formData.get("notes") || undefined,
   });
 
-  const lastRechargeAt = data.lastRechargeAt ? new Date(data.lastRechargeAt) : null;
+  const isChipFisico = data.origin === "CHIP_FISICO";
+  const chipPlan = isChipFisico ? (data.chipPlan ?? "PRE_PAGO") : null;
+  const willTrackRecharge = tracksRecharge(data.origin, chipPlan);
+  const lastRechargeAt = willTrackRecharge && data.lastRechargeAt ? new Date(data.lastRechargeAt) : null;
 
   await prisma.phoneNumber.create({
     data: {
@@ -61,9 +71,11 @@ export async function createNumber(orgSlug: string, formData: FormData) {
       externalId: data.externalId,
       providerToken: data.providerToken,
       orgId: org.id,
-      carrier: data.origin === "CHIP_FISICO" ? (data.carrier ?? null) : null,
+      chipPlan,
+      carrier: willTrackRecharge ? (data.carrier ?? null) : null,
       lastRechargeAt,
       nextRechargeAt: lastRechargeAt ? computeNextRecharge(lastRechargeAt) : null,
+      notes: isChipFisico ? (data.notes ?? null) : null,
     },
   });
 
