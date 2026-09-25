@@ -1,11 +1,23 @@
 const GRAPH_API_BASE_URL = "https://graph.facebook.com/v21.0";
 
+export interface MetaHealthIssue {
+  /** PHONE_NUMBER | WABA | BUSINESS | APP — onde está o problema. */
+  entityType: string;
+  canSendMessage: string | undefined;
+  errorCode: number | undefined;
+  description: string | undefined;
+  /** Sugestão de correção que a própria Meta devolve. */
+  possibleSolution: string | undefined;
+}
+
 export interface MetaPhoneNumberStatus {
   phoneNumberId: string;
   /** Pode vir ausente — nem toda WABA/número devolve "status" no edge. */
   status: string | undefined;
   /** health_status.can_send_message: AVAILABLE | LIMITED | BLOCKED. */
   canSendMessage: string | undefined;
+  /** Erros/restrições de cada camada (número, WABA, empresa, app). */
+  issues: MetaHealthIssue[];
   qualityRating: string | undefined;
   messagingTier: string | null;
 }
@@ -37,7 +49,14 @@ export async function fetchMetaPhoneNumbers(
     data: {
       id: string;
       status?: string;
-      health_status?: { can_send_message?: string };
+      health_status?: {
+        can_send_message?: string;
+        entities?: {
+          entity_type?: string;
+          can_send_message?: string;
+          errors?: { error_code?: number; error_description?: string; possible_solution?: string }[];
+        }[];
+      };
       quality_rating?: string;
       messaging_limit_tier?: string;
     }[];
@@ -47,9 +66,54 @@ export async function fetchMetaPhoneNumbers(
     phoneNumberId: n.id,
     status: n.status,
     canSendMessage: n.health_status?.can_send_message,
+    issues: (n.health_status?.entities ?? []).flatMap((entity) => {
+      const errors = entity.errors ?? [];
+      if (errors.length === 0) {
+        // Camada limitada/bloqueada sem erro detalhado ainda é um problema.
+        return entity.can_send_message && entity.can_send_message !== "AVAILABLE"
+          ? [
+              {
+                entityType: entity.entity_type ?? "UNKNOWN",
+                canSendMessage: entity.can_send_message,
+                errorCode: undefined,
+                description: undefined,
+                possibleSolution: undefined,
+              },
+            ]
+          : [];
+      }
+      return errors.map((error) => ({
+        entityType: entity.entity_type ?? "UNKNOWN",
+        canSendMessage: entity.can_send_message,
+        errorCode: error.error_code,
+        description: error.error_description,
+        possibleSolution: error.possible_solution,
+      }));
+    }),
     qualityRating: n.quality_rating,
     messagingTier: n.messaging_limit_tier ?? null,
   }));
+}
+
+/**
+ * Quantos apps estão inscritos nos webhooks da WABA — GET
+ * /{wabaId}/subscribed_apps. Sem nenhum, a Meta não entrega as mensagens
+ * recebidas a ninguém: o número "funciona" pra enviar, mas não recebe.
+ */
+export async function fetchMetaSubscribedAppsCount(
+  wabaId: string,
+  accessToken: string,
+): Promise<number> {
+  const res = await fetch(`${GRAPH_API_BASE_URL}/${wabaId}/subscribed_apps`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Graph API respondeu ${res.status} ao consultar webhooks da WABA`);
+  }
+
+  const data = (await res.json()) as { data?: unknown[] };
+  return data.data?.length ?? 0;
 }
 
 export interface MetaPhoneSpend {

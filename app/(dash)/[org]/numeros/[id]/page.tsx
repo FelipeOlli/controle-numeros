@@ -225,7 +225,16 @@ export default async function NumberDetailPage({
                 >
                   <StatusPill status={entry.check.status} />
                   <span className="font-mono text-xs text-ink-3">score {entry.check.score}</span>
-                  <span className="type-body-sm truncate text-ink-2">{entry.check.observation || "—"}</span>
+                  {entry.check.observation?.includes("\n") ? (
+                    // Diagnóstico automático (Meta): um problema + correção por linha.
+                    <ul className="flex min-w-0 list-disc flex-col gap-1 pl-4 type-body-sm text-ink-2">
+                      {entry.check.observation.split("\n").filter(Boolean).map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className="type-body-sm min-w-0 break-words text-ink-2">{entry.check.observation || "—"}</span>
+                  )}
                   <span className="type-meta whitespace-nowrap text-ink-3">
                     {formatDateTime(entry.check.createdAt)} ·{" "}
                     {entry.check.source === "API" ? "automático" : "manual"}
