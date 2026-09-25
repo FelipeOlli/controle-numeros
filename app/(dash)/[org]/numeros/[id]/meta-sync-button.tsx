@@ -13,7 +13,10 @@ function describeStatus(result: MetaNumberSyncResult): string {
   if (result.error) return result.error;
   const quality = result.qualityRating ? QUALITY_LABELS[result.qualityRating] : null;
   const status = result.health ? STATUS_LABELS[result.health] : (result.status ?? "Sincronizado");
-  return quality ? `${status} · ${quality}` : status;
+  const summary = quality ? `${status} · ${quality}` : status;
+  const problems = result.problems?.length ?? 0;
+  if (problems === 0) return summary;
+  return `${summary} · ${problems} ${problems === 1 ? "problema" : "problemas"} — veja abaixo`;
 }
 
 /** Sincroniza status/qualidade só desse número, sem esperar os outros da empresa. */

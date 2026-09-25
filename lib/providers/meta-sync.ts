@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/db";
 import { recordHealthCheck } from "@/lib/checks";
-import { fetchMetaPhoneNumbers, fetchMetaSpend, type MetaPhoneNumberStatus } from "./meta";
+import {
+  fetchMetaPhoneNumbers,
+  fetchMetaSpend,
+  fetchMetaSubscribedAppsCount,
+  type MetaHealthIssue,
+  type MetaPhoneNumberStatus,
+} from "./meta";
 import type { HealthStatus, MetaQualityRating } from "@/generated/prisma/enums";
 
 export interface MetaSyncResult {
@@ -17,6 +23,8 @@ export interface MetaNumberSyncResult {
   /** Status de saúde derivado (o que vai pro badge do número). */
   health?: HealthStatus;
   qualityRating?: MetaQualityRating;
+  /** Problemas encontrados + o que fazer — vazio quando está tudo bem. */
+  problems?: string[];
 }
 
 interface MetaCredentialConfig {
@@ -63,6 +71,11 @@ function mapCanSendMessage(value: string | undefined): HealthStatus {
   }
 }
 
+function mapQualityRating(rating: string | undefined): MetaQualityRating {
+  if (rating === "GREEN" || rating === "YELLOW" || rating === "RED") return rating;
+  return "UNKNOWN";
+}
+
 const SEVERITY: Record<HealthStatus, number> = {
   UNKNOWN: 0,
   GREEN: 1,
@@ -72,43 +85,173 @@ const SEVERITY: Record<HealthStatus, number> = {
   BANNED: 5,
 };
 
-/**
- * Status de saúde a partir do que a Graph API devolveu. "status" nem sempre
- * vem no edge /phone_numbers — sem ele, cai pra health_status e, por fim,
- * pra quality_rating. Com o número conectado, qualidade média/baixa piora o
- * status (fica o mais grave dos sinais).
- */
-function deriveMetaHealth(remote: MetaPhoneNumberStatus): HealthStatus {
-  const quality = mapQualityRating(remote.qualityRating);
-  const qualityStatus: HealthStatus = quality === "UNKNOWN" ? "UNKNOWN" : quality;
+const META_STATUS_PROBLEMS: Record<string, string> = {
+  FLAGGED:
+    "Número sinalizado pela Meta por queda de qualidade. Reduza o volume de disparos e revise os templates — se a qualidade não melhorar em 7 dias, o limite de envio cai.",
+  RESTRICTED:
+    "Número restrito: atingiu o limite de conversas iniciadas pela empresa. Aguarde a janela de 24h ou solicite aumento de tier no Gerenciador do WhatsApp.",
+  PENDING:
+    "Registro do número pendente na Cloud API. Conclua o registro (verificação por código + PIN) no Gerenciador do WhatsApp.",
+  BANNED:
+    "Número banido pela Meta. Abra uma solicitação de revisão no Gerenciador do WhatsApp (Business Support).",
+  DISCONNECTED:
+    "Número desconectado da Cloud API — não envia nem recebe. Registre o número novamente no Gerenciador do WhatsApp.",
+  MIGRATED: "Número migrado para outra conta WhatsApp (WABA). Confira no Gerenciador do WhatsApp e atualize o ID no cadastro.",
+  DELETED: "Número excluído da conta WhatsApp (WABA). Confira no Gerenciador do WhatsApp.",
+};
 
-  let status = mapMetaStatus(remote.status);
-  if (status === "UNKNOWN") status = mapCanSendMessage(remote.canSendMessage);
-  if (status === "UNKNOWN") return qualityStatus;
+const ENTITY_LABELS: Record<string, string> = {
+  PHONE_NUMBER: "Número",
+  WABA: "Conta WhatsApp (WABA)",
+  BUSINESS: "Empresa (Business Manager)",
+  APP: "App da Meta",
+};
 
-  if (status === "GREEN" || status === "YELLOW") {
-    for (const signal of [mapCanSendMessage(remote.canSendMessage), qualityStatus]) {
-      if (SEVERITY[signal] > SEVERITY[status]) status = signal;
-    }
-  }
-  return status;
+function describeIssue(issue: MetaHealthIssue): string {
+  const where = ENTITY_LABELS[issue.entityType] ?? issue.entityType;
+  const what =
+    issue.description ??
+    (issue.canSendMessage === "BLOCKED" ? "envio de mensagens bloqueado" : "envio de mensagens limitado");
+  const code = issue.errorCode ? ` (erro ${issue.errorCode})` : "";
+  const fix = issue.possibleSolution ? ` Como resolver: ${issue.possibleSolution}` : "";
+  return `${where}: ${what}${code}.${fix}`;
 }
 
-/** Texto do estado na Meta pro histórico/botão — nunca "undefined". */
+interface MetaDiagnosis {
+  status: HealthStatus;
+  problems: string[];
+}
+
+/**
+ * Diz se o número consegue de fato enviar e receber — não basta estar
+ * CONNECTED. Junta os sinais da Graph API e fica o mais grave:
+ * - status do número (CONNECTED, FLAGGED, BANNED…);
+ * - health_status: se pode enviar e, se não, os erros de cada camada
+ *   (número, WABA, empresa, app) com a correção sugerida pela Meta;
+ * - quality_rating (média/baixa → risco de restrição);
+ * - webhooks da WABA: sem app inscrito, as mensagens recebidas não chegam.
+ * "status" nem sempre vem no edge — sem nenhum sinal de conexão, a
+ * qualidade decide sozinha.
+ */
+function diagnoseMetaNumber(
+  remote: MetaPhoneNumberStatus,
+  subscribedApps: number | null,
+): MetaDiagnosis {
+  const problems: string[] = [];
+  const signals: HealthStatus[] = [];
+
+  const fromStatus = mapMetaStatus(remote.status);
+  signals.push(fromStatus);
+  if (remote.status && META_STATUS_PROBLEMS[remote.status]) {
+    problems.push(META_STATUS_PROBLEMS[remote.status]);
+  }
+
+  const fromSend = mapCanSendMessage(remote.canSendMessage);
+  signals.push(fromSend);
+  if (remote.issues.length > 0) {
+    problems.push(...remote.issues.map(describeIssue));
+  } else if (fromSend === "RED") {
+    problems.push("Meta bloqueou o envio de mensagens deste número. Verifique avisos no Gerenciador do WhatsApp.");
+  } else if (fromSend === "YELLOW") {
+    problems.push("Meta limitou o envio de mensagens deste número. Verifique avisos no Gerenciador do WhatsApp.");
+  }
+
+  const quality = mapQualityRating(remote.qualityRating);
+  if (quality !== "UNKNOWN") signals.push(quality);
+  if (quality === "YELLOW") {
+    problems.push(
+      "Qualidade média: clientes estão bloqueando ou denunciando as mensagens. Revise frequência, conteúdo dos templates e opt-in.",
+    );
+  } else if (quality === "RED") {
+    problems.push(
+      "Qualidade baixa: risco de restrição e queda do limite de envio. Pause campanhas e revise templates e opt-in.",
+    );
+  }
+
+  if (subscribedApps === 0) {
+    signals.push("RED");
+    problems.push(
+      "Nenhum app inscrito nos webhooks da conta WhatsApp (WABA): as mensagens recebidas não chegam ao seu sistema. Inscreva o app (POST /{waba-id}/subscribed_apps) ou reconecte a integração.",
+    );
+  }
+
+  // Banido/perdido é definitivo: nenhum outro sinal muda isso.
+  if (fromStatus === "BANNED" || fromStatus === "LOST") return { status: fromStatus, problems };
+
+  const status = signals.reduce<HealthStatus>(
+    (worst, signal) => (SEVERITY[signal] > SEVERITY[worst] ? signal : worst),
+    "UNKNOWN",
+  );
+  return { status, problems };
+}
+
+/** Texto do estado na Meta pro botão — nunca "undefined". */
 function describeRemote(remote: MetaPhoneNumberStatus): string | undefined {
   return remote.status ?? (remote.canSendMessage ? `Envio: ${remote.canSendMessage}` : undefined);
 }
 
-function mapQualityRating(rating: string | undefined): MetaQualityRating {
-  if (rating === "GREEN" || rating === "YELLOW" || rating === "RED") return rating;
-  return "UNKNOWN";
+type SyncableMetaNumber = {
+  id: string;
+  currentStatus: HealthStatus;
+};
+
+/**
+ * Aplica o diagnóstico a um número: atualiza qualidade/tier sempre e grava
+ * HealthCheck (via lib/checks.ts) quando o status muda — ou quando, fora do
+ * verde, o motivo mudou, pra observação sempre dizer o problema atual.
+ */
+async function applyMetaDiagnosis(
+  orgId: string,
+  number: SyncableMetaNumber,
+  remote: MetaPhoneNumberStatus,
+  diagnosis: MetaDiagnosis,
+): Promise<boolean> {
+  await prisma.phoneNumber.update({
+    where: { id: number.id },
+    data: {
+      qualityRating: mapQualityRating(remote.qualityRating),
+      tier: remote.messagingTier,
+      lastSyncAt: new Date(),
+    },
+  });
+
+  const observation = diagnosis.problems.length ? diagnosis.problems.join("\n") : undefined;
+
+  let shouldRecord = diagnosis.status !== number.currentStatus;
+  if (!shouldRecord && diagnosis.status !== "GREEN") {
+    const lastCheck = await prisma.healthCheck.findFirst({
+      where: { phoneNumberId: number.id },
+      orderBy: { createdAt: "desc" },
+      select: { observation: true },
+    });
+    shouldRecord = (lastCheck?.observation ?? undefined) !== observation;
+  }
+  if (!shouldRecord) return false;
+
+  await recordHealthCheck({
+    orgId,
+    phoneNumberId: number.id,
+    source: "API",
+    status: diagnosis.status,
+    observation,
+  });
+  return diagnosis.status !== number.currentStatus;
+}
+
+/** Webhooks da WABA — falha aqui não derruba o sync (null = não verificado). */
+async function safeSubscribedAppsCount(config: Required<Pick<MetaCredentialConfig, "wabaId" | "accessToken">>) {
+  try {
+    return await fetchMetaSubscribedAppsCount(config.wabaId, config.accessToken);
+  } catch (err) {
+    console.error("[meta-sync] falha ao consultar webhooks da WABA", err);
+    return null;
+  }
 }
 
 /**
  * Sincroniza status/qualidade/tier dos números Meta Cloud API de uma
- * empresa, numa chamada só (GET /{wabaId}/phone_numbers). Só grava
- * HealthCheck (via lib/checks.ts) quando o status muda — qualityRating e
- * tier são atributos, atualizados sempre, sem virar entrada no histórico.
+ * empresa, numa chamada só (GET /{wabaId}/phone_numbers) + uma pros
+ * webhooks da WABA (vale pra todos os números dela).
  */
 export async function syncMetaForOrg(orgId: string): Promise<MetaSyncResult> {
   const credential = await prisma.providerCredential.findUnique({
@@ -142,6 +285,10 @@ export async function syncMetaForOrg(orgId: string): Promise<MetaSyncResult> {
     };
   }
   const remoteById = new Map(remoteNumbers.map((n) => [n.phoneNumberId, n]));
+  const subscribedApps = await safeSubscribedAppsCount({
+    wabaId: config.wabaId,
+    accessToken: config.accessToken,
+  });
 
   let checked = 0;
   let statusChanged = 0;
@@ -155,25 +302,9 @@ export async function syncMetaForOrg(orgId: string): Promise<MetaSyncResult> {
     }
 
     try {
-      const status = deriveMetaHealth(remote);
-      const qualityRating = mapQualityRating(remote.qualityRating);
-
-      await prisma.phoneNumber.update({
-        where: { id: number.id },
-        data: { qualityRating, tier: remote.messagingTier, lastSyncAt: new Date() },
-      });
-
+      const diagnosis = diagnoseMetaNumber(remote, subscribedApps);
       checked += 1;
-      if (status !== number.currentStatus) {
-        await recordHealthCheck({
-          orgId,
-          phoneNumberId: number.id,
-          source: "API",
-          status,
-          observation: status !== "GREEN" && describeRemote(remote) ? `Status na Meta: ${describeRemote(remote)}` : undefined,
-        });
-        statusChanged += 1;
-      }
+      if (await applyMetaDiagnosis(orgId, number, remote, diagnosis)) statusChanged += 1;
     } catch (err) {
       errors.push(`${number.label}: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -230,32 +361,26 @@ export async function syncMetaForNumber(
     return { ok: false, statusChanged: false, error: "Número não encontrado na WABA." };
   }
 
-  const status = deriveMetaHealth(remote);
-  const qualityRating = mapQualityRating(remote.qualityRating);
-
-  await prisma.phoneNumber.update({
-    where: { id: number.id },
-    data: { qualityRating, tier: remote.messagingTier, lastSyncAt: new Date() },
+  const subscribedApps = await safeSubscribedAppsCount({
+    wabaId: config.wabaId,
+    accessToken: config.accessToken,
   });
-
-  let statusChanged = false;
-  if (status !== number.currentStatus) {
-    await recordHealthCheck({
-      orgId,
-      phoneNumberId: number.id,
-      source: "API",
-      status,
-      observation: status !== "GREEN" && describeRemote(remote) ? `Status na Meta: ${describeRemote(remote)}` : undefined,
-    });
-    statusChanged = true;
-  }
+  const diagnosis = diagnoseMetaNumber(remote, subscribedApps);
+  const statusChanged = await applyMetaDiagnosis(orgId, number, remote, diagnosis);
 
   await prisma.providerCredential.update({
     where: { orgId_platform: { orgId, platform: "META_CLOUD" } },
     data: { lastSyncAt: new Date() },
   });
 
-  return { ok: true, statusChanged, status: describeRemote(remote), health: status, qualityRating };
+  return {
+    ok: true,
+    statusChanged,
+    status: describeRemote(remote),
+    health: diagnosis.status,
+    qualityRating: mapQualityRating(remote.qualityRating),
+    problems: diagnosis.problems,
+  };
 }
 
 /**
