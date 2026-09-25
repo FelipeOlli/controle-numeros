@@ -4,7 +4,13 @@ import { prisma } from "@/lib/db";
 import { requireOrg } from "@/lib/tenant";
 import { ScoreRing } from "@/components/score-ring";
 import { StatusPill } from "@/components/status-pill";
-import { ORIGIN_LABELS, PLATFORM_LABELS, CHIP_PLAN_LABELS, tracksRecharge } from "@/lib/providers";
+import {
+  ORIGIN_LABELS,
+  PLATFORM_LABELS,
+  CHIP_PLAN_LABELS,
+  CARRIER_LABELS,
+  tracksRecharge,
+} from "@/lib/providers";
 import { dueDateStatus, timeAgo } from "@/lib/format";
 import { AddNumberDialog } from "./add-number-dialog";
 import { ZapiCredentialForm } from "./zapi-credential-form";
@@ -114,6 +120,11 @@ export default async function NumerosPage({
                 <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
                   {ORIGIN_LABELS[n.origin]}
                 </span>
+                {n.origin === "CHIP_FISICO" && n.carrier && (
+                  <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
+                    {CARRIER_LABELS[n.carrier]}
+                  </span>
+                )}
                 {n.platforms.map((platform) => (
                   <span key={platform} className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
                     {PLATFORM_LABELS[platform]}

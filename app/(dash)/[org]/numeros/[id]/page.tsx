@@ -8,7 +8,13 @@ import { requireOrg } from "@/lib/tenant";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/status-pill";
 import { SELECTABLE_STATUSES, STATUS_LABELS } from "@/lib/health";
-import { ORIGIN_LABELS, PLATFORM_LABELS, CHIP_PLAN_LABELS, tracksRecharge } from "@/lib/providers";
+import {
+  ORIGIN_LABELS,
+  PLATFORM_LABELS,
+  CHIP_PLAN_LABELS,
+  CARRIER_LABELS,
+  tracksRecharge,
+} from "@/lib/providers";
 import { dueDateStatus, formatDateTime } from "@/lib/format";
 import { createCheck } from "./actions";
 import type { ChipPlan } from "@/generated/prisma/enums";
@@ -132,6 +138,11 @@ export default async function NumberDetailPage({
           <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
             {ORIGIN_LABELS[number.origin]}
           </span>
+          {isChipFisico && number.carrier && (
+            <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
+              {CARRIER_LABELS[number.carrier]}
+            </span>
+          )}
           {number.platforms.map((platform) => (
             <span key={platform} className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
               {PLATFORM_LABELS[platform]}
