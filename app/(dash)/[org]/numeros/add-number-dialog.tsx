@@ -131,6 +131,16 @@ export function AddNumberDialog({ orgSlug }: { orgSlug: string }) {
               </div>
             </>
           )}
+          {platforms.includes("META_CLOUD") && !platforms.includes("ZAPI") && (
+            <div className="flex flex-col gap-1.5">
+              <label className="type-form-label text-ink-2">ID (Meta)</label>
+              <Input
+                name="externalId"
+                className="font-mono"
+                placeholder="phone_number_id no Business Manager"
+              />
+            </div>
+          )}
           <Button type="submit" variant="pill" size="pill" className="mt-1">
             <Plus size={16} />
             Adicionar número

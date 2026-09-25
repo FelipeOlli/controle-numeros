@@ -127,6 +127,17 @@ export function EditNumberDialog({
               </div>
             </>
           )}
+          {platforms.includes("META_CLOUD") && !platforms.includes("ZAPI") && (
+            <div className="flex flex-col gap-1.5">
+              <label className="type-form-label text-ink-2">ID (Meta)</label>
+              <Input
+                name="externalId"
+                defaultValue={externalId ?? ""}
+                className="font-mono"
+                placeholder="phone_number_id no Business Manager"
+              />
+            </div>
+          )}
           {movableOrgs.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <label className="type-form-label text-ink-2">Empresa</label>
