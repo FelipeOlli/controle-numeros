@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { recordHealthCheck } from "@/lib/checks";
-import { fetchMetaPhoneNumbers, fetchMetaSpend } from "./meta";
+import { fetchMetaPhoneNumbers, fetchMetaSpend, type MetaPhoneNumberStatus } from "./meta";
 import type { HealthStatus, MetaQualityRating } from "@/generated/prisma/enums";
 
 export interface MetaSyncResult {
@@ -14,6 +14,8 @@ export interface MetaNumberSyncResult {
   statusChanged: boolean;
   error?: string;
   status?: string;
+  /** Status de saúde derivado (o que vai pro badge do número). */
+  health?: HealthStatus;
   qualityRating?: MetaQualityRating;
 }
 
@@ -29,7 +31,7 @@ function readMetaConfig(config: unknown): MetaCredentialConfig | undefined {
 }
 
 /** CONNECTED é o único status "saudável" — o resto vira alerta em graus. */
-function mapMetaStatus(status: string): HealthStatus {
+function mapMetaStatus(status: string | undefined): HealthStatus {
   switch (status) {
     case "CONNECTED":
       return "GREEN";
@@ -46,6 +48,55 @@ function mapMetaStatus(status: string): HealthStatus {
     default:
       return "UNKNOWN";
   }
+}
+
+function mapCanSendMessage(value: string | undefined): HealthStatus {
+  switch (value) {
+    case "AVAILABLE":
+      return "GREEN";
+    case "LIMITED":
+      return "YELLOW";
+    case "BLOCKED":
+      return "RED";
+    default:
+      return "UNKNOWN";
+  }
+}
+
+const SEVERITY: Record<HealthStatus, number> = {
+  UNKNOWN: 0,
+  GREEN: 1,
+  YELLOW: 2,
+  RED: 3,
+  LOST: 4,
+  BANNED: 5,
+};
+
+/**
+ * Status de saúde a partir do que a Graph API devolveu. "status" nem sempre
+ * vem no edge /phone_numbers — sem ele, cai pra health_status e, por fim,
+ * pra quality_rating. Com o número conectado, qualidade média/baixa piora o
+ * status (fica o mais grave dos sinais).
+ */
+function deriveMetaHealth(remote: MetaPhoneNumberStatus): HealthStatus {
+  const quality = mapQualityRating(remote.qualityRating);
+  const qualityStatus: HealthStatus = quality === "UNKNOWN" ? "UNKNOWN" : quality;
+
+  let status = mapMetaStatus(remote.status);
+  if (status === "UNKNOWN") status = mapCanSendMessage(remote.canSendMessage);
+  if (status === "UNKNOWN") return qualityStatus;
+
+  if (status === "GREEN" || status === "YELLOW") {
+    for (const signal of [mapCanSendMessage(remote.canSendMessage), qualityStatus]) {
+      if (SEVERITY[signal] > SEVERITY[status]) status = signal;
+    }
+  }
+  return status;
+}
+
+/** Texto do estado na Meta pro histórico/botão — nunca "undefined". */
+function describeRemote(remote: MetaPhoneNumberStatus): string | undefined {
+  return remote.status ?? (remote.canSendMessage ? `Envio: ${remote.canSendMessage}` : undefined);
 }
 
 function mapQualityRating(rating: string | undefined): MetaQualityRating {
@@ -104,7 +155,7 @@ export async function syncMetaForOrg(orgId: string): Promise<MetaSyncResult> {
     }
 
     try {
-      const status = mapMetaStatus(remote.status);
+      const status = deriveMetaHealth(remote);
       const qualityRating = mapQualityRating(remote.qualityRating);
 
       await prisma.phoneNumber.update({
@@ -119,7 +170,7 @@ export async function syncMetaForOrg(orgId: string): Promise<MetaSyncResult> {
           phoneNumberId: number.id,
           source: "API",
           status,
-          observation: status !== "GREEN" && remote.status ? `Status na Meta: ${remote.status}` : undefined,
+          observation: status !== "GREEN" && describeRemote(remote) ? `Status na Meta: ${describeRemote(remote)}` : undefined,
         });
         statusChanged += 1;
       }
@@ -179,7 +230,7 @@ export async function syncMetaForNumber(
     return { ok: false, statusChanged: false, error: "Número não encontrado na WABA." };
   }
 
-  const status = mapMetaStatus(remote.status);
+  const status = deriveMetaHealth(remote);
   const qualityRating = mapQualityRating(remote.qualityRating);
 
   await prisma.phoneNumber.update({
@@ -194,7 +245,7 @@ export async function syncMetaForNumber(
       phoneNumberId: number.id,
       source: "API",
       status,
-      observation: status !== "GREEN" && remote.status ? `Status na Meta: ${remote.status}` : undefined,
+      observation: status !== "GREEN" && describeRemote(remote) ? `Status na Meta: ${describeRemote(remote)}` : undefined,
     });
     statusChanged = true;
   }
@@ -204,7 +255,7 @@ export async function syncMetaForNumber(
     data: { lastSyncAt: new Date() },
   });
 
-  return { ok: true, statusChanged, status: remote.status, qualityRating };
+  return { ok: true, statusChanged, status: describeRemote(remote), health: status, qualityRating };
 }
 
 /**
