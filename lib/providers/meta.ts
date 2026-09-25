@@ -17,7 +17,11 @@ export async function fetchMetaPhoneNumbers(
   wabaId: string,
   accessToken: string,
 ): Promise<MetaPhoneNumberStatus[]> {
-  const res = await fetch(`${GRAPH_API_BASE_URL}/${wabaId}/phone_numbers`, {
+  // Sem "fields" explícito, o edge /phone_numbers só devolve o conjunto
+  // padrão da Graph API (id, nome, telefone) — status e messaging_limit_tier
+  // ficam de fora e chegam undefined.
+  const fields = "id,display_phone_number,status,quality_rating,messaging_limit_tier";
+  const res = await fetch(`${GRAPH_API_BASE_URL}/${wabaId}/phone_numbers?fields=${fields}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 

@@ -119,7 +119,7 @@ export async function syncMetaForOrg(orgId: string): Promise<MetaSyncResult> {
           phoneNumberId: number.id,
           source: "API",
           status,
-          observation: status !== "GREEN" ? `Status na Meta: ${remote.status}` : undefined,
+          observation: status !== "GREEN" && remote.status ? `Status na Meta: ${remote.status}` : undefined,
         });
         statusChanged += 1;
       }
@@ -194,7 +194,7 @@ export async function syncMetaForNumber(
       phoneNumberId: number.id,
       source: "API",
       status,
-      observation: status !== "GREEN" ? `Status na Meta: ${remote.status}` : undefined,
+      observation: status !== "GREEN" && remote.status ? `Status na Meta: ${remote.status}` : undefined,
     });
     statusChanged = true;
   }
