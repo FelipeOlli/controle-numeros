@@ -25,6 +25,7 @@ export const CARRIER_LABELS: Record<Carrier, string> = {
   CLARO: "Claro",
   OI: "Oi",
   OUTRA: "Outra",
+  DESCONHECIDA: "Não sei",
 };
 
 /** Plano do chip físico — pré-pago recarrega, conta/plano é faturado. */

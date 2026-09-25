@@ -38,6 +38,10 @@ const createSchema = z
   .refine((data) => !tracksRecharge(data.origin, data.chipPlan ?? null) || data.lastRechargeAt, {
     message: "Informe a data da última recarga pra chip físico pré-pago",
     path: ["lastRechargeAt"],
+  })
+  .refine((data) => data.origin !== "CHIP_FISICO" || data.carrier, {
+    message: "Informe a operadora do chip físico",
+    path: ["carrier"],
   });
 
 export async function createNumber(orgSlug: string, formData: FormData) {
@@ -72,7 +76,7 @@ export async function createNumber(orgSlug: string, formData: FormData) {
       providerToken: data.providerToken,
       orgId: org.id,
       chipPlan,
-      carrier: willTrackRecharge ? (data.carrier ?? null) : null,
+      carrier: isChipFisico ? (data.carrier ?? null) : null,
       lastRechargeAt,
       nextRechargeAt: lastRechargeAt ? computeNextRecharge(lastRechargeAt) : null,
       notes: isChipFisico ? (data.notes ?? null) : null,

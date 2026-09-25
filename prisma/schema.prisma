@@ -42,6 +42,7 @@ enum Carrier {
   CLARO
   OI
   OUTRA
+  DESCONHECIDA
 }
 
 /// Plano do chip físico — só relevante pra origem CHIP_FISICO. Pré-pago

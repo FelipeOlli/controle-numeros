@@ -12,9 +12,9 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { PlatformCheckboxes } from "@/components/platform-checkboxes";
-import { ORIGIN_LABELS } from "@/lib/providers";
+import { ORIGIN_LABELS, CARRIER_LABELS } from "@/lib/providers";
 import { updateNumber } from "./actions";
-import type { NumberOrigin, NumberPlatform } from "@/generated/prisma/enums";
+import type { NumberOrigin, NumberPlatform, Carrier } from "@/generated/prisma/enums";
 
 const selectClass =
   "rounded-[14px] border border-line bg-canvas px-[14px] py-3 text-[15px] text-ink outline-none focus:border-accent focus:bg-surface";
@@ -28,6 +28,7 @@ export function EditNumberDialog({
   platforms: initialPlatforms,
   externalId,
   providerToken,
+  carrier,
   movableOrgs,
 }: {
   orgSlug: string;
@@ -38,6 +39,7 @@ export function EditNumberDialog({
   platforms: NumberPlatform[];
   externalId: string | null;
   providerToken: string | null;
+  carrier: Carrier | null;
   /** Empresas (OWNER/ADMIN) pra onde este número pode ser movido, exceto a atual. */
   movableOrgs: { slug: string; name: string }[];
 }) {
@@ -89,6 +91,19 @@ export function EditNumberDialog({
               ))}
             </select>
           </div>
+          {origin === "CHIP_FISICO" && (
+            <div className="flex flex-col gap-1.5">
+              <label className="type-form-label text-ink-2">Operadora</label>
+              <select name="carrier" defaultValue={carrier ?? ""} required className={selectClass}>
+                <option value="">Selecione</option>
+                {Object.entries(CARRIER_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <PlatformCheckboxes origin={origin} selected={platforms} onChange={setPlatforms} />
           {platforms.includes("ZAPI") && (
             <>

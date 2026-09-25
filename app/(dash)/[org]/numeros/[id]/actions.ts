@@ -29,15 +29,21 @@ const checkSchema = z.object({
   observation: z.string().optional(),
 });
 
-const updateSchema = z.object({
-  label: z.string().min(1),
-  e164: z.string().min(8),
-  origin: z.enum(originValues),
-  platforms: z.array(z.enum(platformValues)),
-  externalId: z.string().optional(),
-  providerToken: z.string().optional(),
-  targetOrgSlug: z.string().optional(),
-});
+const updateSchema = z
+  .object({
+    label: z.string().min(1),
+    e164: z.string().min(8),
+    origin: z.enum(originValues),
+    platforms: z.array(z.enum(platformValues)),
+    externalId: z.string().optional(),
+    providerToken: z.string().optional(),
+    carrier: z.enum(carrierValues).optional(),
+    targetOrgSlug: z.string().optional(),
+  })
+  .refine((data) => data.origin !== "CHIP_FISICO" || data.carrier, {
+    message: "Informe a operadora do chip físico",
+    path: ["carrier"],
+  });
 
 /**
  * Edita label/E.164/origem e, opcionalmente, move o número pra outra
@@ -60,6 +66,7 @@ export async function updateNumber(orgSlug: string, numberId: string, formData: 
     platforms: formData.getAll("platforms"),
     externalId: formData.get("externalId") || undefined,
     providerToken: formData.get("providerToken") || undefined,
+    carrier: formData.get("carrier") || undefined,
     targetOrgSlug: formData.get("targetOrgSlug") || undefined,
   });
 
@@ -86,6 +93,7 @@ export async function updateNumber(orgSlug: string, numberId: string, formData: 
         platforms,
         externalId: data.externalId,
         providerToken: data.providerToken,
+        carrier: data.origin === "CHIP_FISICO" ? (data.carrier ?? null) : null,
         orgId: targetOrg.id,
       },
     });
@@ -105,6 +113,7 @@ export async function updateNumber(orgSlug: string, numberId: string, formData: 
       platforms,
       externalId: data.externalId,
       providerToken: data.providerToken,
+      carrier: data.origin === "CHIP_FISICO" ? (data.carrier ?? null) : null,
     },
   });
 
@@ -149,7 +158,6 @@ export async function updateZapiBilling(orgSlug: string, numberId: string, formD
 
 const rechargeSchema = z.object({
   chipPlan: z.enum(chipPlanValues).optional(),
-  carrier: z.enum(carrierValues).optional(),
   lastRechargeAt: z.string().optional(),
   nextRechargeAt: z.string().optional(),
   notes: z.string().optional(),
@@ -159,8 +167,9 @@ const rechargeSchema = z.object({
  * Recarga do chip físico — sem crédito a cada ~3 meses, a operadora recolhe
  * o número. Zera rechargeReminderSentAt sempre que a data muda, pra poder
  * alertar de novo no próximo ciclo (lib/alerts/dispatch.ts, via worker).
- * Conta/plano (chipPlan POS_PAGO) não recarrega — limpa operadora/datas e
- * guarda só observações (ex.: dia do vencimento da fatura).
+ * Conta/plano (chipPlan POS_PAGO) não recarrega — limpa datas e guarda só
+ * observações (ex.: dia do vencimento da fatura). Operadora não é tocada
+ * aqui — mora no Editar número (updateNumber), não na recarga.
  */
 export async function updateRecharge(orgSlug: string, numberId: string, formData: FormData) {
   const { org, role, userId } = await requireOrg(orgSlug);
@@ -173,7 +182,6 @@ export async function updateRecharge(orgSlug: string, numberId: string, formData
 
   const data = rechargeSchema.parse({
     chipPlan: formData.get("chipPlan") || undefined,
-    carrier: formData.get("carrier") || undefined,
     lastRechargeAt: formData.get("lastRechargeAt") || undefined,
     nextRechargeAt: formData.get("nextRechargeAt") || undefined,
     notes: formData.get("notes") || undefined,
@@ -227,7 +235,6 @@ export async function updateRecharge(orgSlug: string, numberId: string, formData
     where: { id: numberId },
     data: {
       chipPlan,
-      carrier: willTrackRecharge ? (data.carrier ?? null) : null,
       lastRechargeAt: willTrackRecharge && data.lastRechargeAt ? new Date(data.lastRechargeAt) : null,
       nextRechargeAt: willTrackRecharge && data.nextRechargeAt ? new Date(data.nextRechargeAt) : null,
       rechargeReminderSentAt: null,

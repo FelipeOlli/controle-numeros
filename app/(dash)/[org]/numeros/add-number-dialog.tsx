@@ -85,24 +85,22 @@ export function AddNumberDialog({ orgSlug }: { orgSlug: string }) {
                   ))}
                 </select>
               </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="type-form-label text-ink-2">Operadora</label>
+                <select name="carrier" defaultValue="" required className={selectClass}>
+                  <option value="">Selecione</option>
+                  {Object.entries(CARRIER_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               {chipPlan === "PRE_PAGO" ? (
-                <>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="type-form-label text-ink-2">Operadora</label>
-                    <select name="carrier" defaultValue="" className={selectClass}>
-                      <option value="">Selecione</option>
-                      {Object.entries(CARRIER_LABELS).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="type-form-label text-ink-2">Última recarga</label>
-                    <Input name="lastRechargeAt" type="date" required />
-                  </div>
-                </>
+                <div className="flex flex-col gap-1.5">
+                  <label className="type-form-label text-ink-2">Última recarga</label>
+                  <Input name="lastRechargeAt" type="date" required />
+                </div>
               ) : (
                 <div className="flex flex-col gap-1.5">
                   <label className="type-form-label text-ink-2">Observações</label>

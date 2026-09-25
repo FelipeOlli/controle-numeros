@@ -327,7 +327,6 @@ export default async function NumberDetailPage({
       orgSlug={orgSlug}
       numberId={id}
       chipPlan={number.chipPlan}
-      carrier={number.carrier}
       lastRechargeAt={number.lastRechargeAt}
       nextRechargeAt={number.nextRechargeAt}
       notes={number.notes}
@@ -355,6 +354,7 @@ export default async function NumberDetailPage({
               platforms={number.platforms}
               externalId={number.externalId}
               providerToken={number.providerToken}
+              carrier={number.carrier}
               movableOrgs={movableOrgs}
             />
             <DeleteNumberButton orgSlug={orgSlug} numberId={id} label={number.label} />

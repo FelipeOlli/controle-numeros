@@ -4,9 +4,9 @@ import { useState, useTransition } from "react";
 import { BatteryCharging, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CARRIER_LABELS, CHIP_PLAN_LABELS } from "@/lib/providers";
+import { CHIP_PLAN_LABELS } from "@/lib/providers";
 import { updateRecharge, quickRecharge } from "./actions";
-import type { Carrier, ChipPlan } from "@/generated/prisma/enums";
+import type { ChipPlan } from "@/generated/prisma/enums";
 
 const selectClass =
   "w-full rounded-[14px] border border-line bg-canvas px-[14px] py-3 text-[15px] text-ink outline-none focus:border-accent focus:bg-surface";
@@ -22,7 +22,6 @@ export function RechargeForm({
   orgSlug,
   numberId,
   chipPlan: initialChipPlan,
-  carrier,
   lastRechargeAt,
   nextRechargeAt,
   notes,
@@ -30,7 +29,6 @@ export function RechargeForm({
   orgSlug: string;
   numberId: string;
   chipPlan: ChipPlan | null;
-  carrier: Carrier | null;
   lastRechargeAt: Date | null;
   nextRechargeAt: Date | null;
   notes: string | null;
@@ -87,17 +85,6 @@ export function RechargeForm({
         </div>
         {isPrepaid ? (
           <>
-            <div className="flex flex-col gap-1.5">
-              <label className="type-form-label text-ink-2">Operadora</label>
-              <select name="carrier" defaultValue={carrier ?? ""} className={selectClass}>
-                <option value="">Selecione</option>
-                {Object.entries(CARRIER_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
             <div className="flex flex-col gap-1.5">
               <label className="type-form-label text-ink-2">Última recarga</label>
               <Input
