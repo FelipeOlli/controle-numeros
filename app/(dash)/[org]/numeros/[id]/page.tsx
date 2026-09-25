@@ -26,7 +26,7 @@ import { ZapiBillingForm } from "./zapi-billing-form";
 import { ZapiSyncButton } from "./zapi-sync-button";
 import { MetaSyncButton } from "./meta-sync-button";
 import { RechargeForm } from "./recharge-form";
-import { BadgeDollarSign, TriangleAlert } from "lucide-react";
+import { BadgeDollarSign } from "lucide-react";
 
 const selectClass =
   "w-full rounded-[14px] border border-line bg-canvas px-[14px] py-3 text-[15px] text-ink outline-none focus:border-accent focus:bg-surface";
@@ -199,37 +199,6 @@ export default async function NumberDetailPage({
     </div>
   );
 
-  // Último diagnóstico automático da Meta — só aparece fora do verde, com o
-  // que está impedindo o número de enviar/receber e como corrigir.
-  const latestCheck = checks[0];
-  const metaProblems =
-    isMetaCloud &&
-    number.currentStatus !== "GREEN" &&
-    latestCheck?.source === "API" &&
-    latestCheck.observation
-      ? latestCheck.observation.split("\n").filter(Boolean)
-      : [];
-
-  const diagnosisCard = metaProblems.length > 0 && (
-    <div className="flex flex-col gap-3 rounded-[22px] border border-warn bg-warn-soft p-[22px_24px]">
-      <span className="flex items-center gap-2 type-card-title-sm">
-        <TriangleAlert size={16} className="text-warn-icon" />
-        O que precisa de correção
-      </span>
-      <ul className="flex flex-col gap-2">
-        {metaProblems.map((problem) => (
-          <li key={problem} className="type-body-sm rounded-[15px] bg-surface px-4 py-3 text-ink-2">
-            {problem}
-          </li>
-        ))}
-      </ul>
-      <span className="type-meta text-ink-3">
-        Diagnóstico da Meta em {formatDateTime(latestCheck.createdAt)}. Depois de corrigir, clique em
-        Sincronizar.
-      </span>
-    </div>
-  );
-
   const scoreHistoryCard = chartData.length > 1 && (
     <div className="flex flex-col gap-4 rounded-[22px] bg-surface p-[22px_24px]">
       <span className="type-card-title-sm">Histórico de score</span>
@@ -256,7 +225,16 @@ export default async function NumberDetailPage({
                 >
                   <StatusPill status={entry.check.status} />
                   <span className="font-mono text-xs text-ink-3">score {entry.check.score}</span>
-                  <span className="type-body-sm truncate text-ink-2">{entry.check.observation || "—"}</span>
+                  {entry.check.observation?.includes("\n") ? (
+                    // Diagnóstico automático (Meta): um problema + correção por linha.
+                    <ul className="flex min-w-0 list-disc flex-col gap-1 pl-4 type-body-sm text-ink-2">
+                      {entry.check.observation.split("\n").filter(Boolean).map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className="type-body-sm min-w-0 break-words text-ink-2">{entry.check.observation || "—"}</span>
+                  )}
                   <span className="type-meta whitespace-nowrap text-ink-3">
                     {formatDateTime(entry.check.createdAt)} ·{" "}
                     {entry.check.source === "API" ? "automático" : "manual"}
@@ -451,7 +429,6 @@ export default async function NumberDetailPage({
 
       <div className="flex flex-col gap-4 min-[900px]:hidden">
         {identityCard}
-        {diagnosisCard}
         {registerCheckCard}
         {billingCard}
         {spendCard}
@@ -464,7 +441,6 @@ export default async function NumberDetailPage({
       <div className="hidden min-[900px]:grid min-[900px]:grid-cols-[minmax(0,1fr)_340px] min-[900px]:items-start min-[900px]:gap-4">
         <div className="flex min-w-0 flex-col gap-4">
           {identityCard}
-          {diagnosisCard}
           {scoreHistoryCard}
           {checksHistoryCard}
         </div>

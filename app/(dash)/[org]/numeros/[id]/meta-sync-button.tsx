@@ -16,7 +16,7 @@ function describeStatus(result: MetaNumberSyncResult): string {
   const summary = quality ? `${status} · ${quality}` : status;
   const problems = result.problems?.length ?? 0;
   if (problems === 0) return summary;
-  return `${summary} · ${problems} ${problems === 1 ? "problema" : "problemas"} — veja abaixo`;
+  return `${summary} · ${problems} ${problems === 1 ? "problema" : "problemas"} — veja no histórico de checks`;
 }
 
 /** Sincroniza status/qualidade só desse número, sem esperar os outros da empresa. */
