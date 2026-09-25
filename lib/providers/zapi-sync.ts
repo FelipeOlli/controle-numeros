@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { recordHealthCheck } from "@/lib/checks";
-import { fetchZapiInstanceStatus } from "./zapi";
+import { fetchZapiInstanceStatus, type ZapiInstanceStatus } from "./zapi";
 import type { HealthStatus } from "@/generated/prisma/enums";
 
 export interface ZapiSyncResult {
@@ -13,6 +13,9 @@ export interface ZapiNumberSyncResult {
   ok: boolean;
   statusChanged: boolean;
   error?: string;
+  /** Estado que a Z-API devolveu agora — pra UI mostrar mesmo sem mudança. */
+  connected?: boolean;
+  smartphoneConnected?: boolean;
 }
 
 type SyncableNumber = {
@@ -34,7 +37,7 @@ async function syncOneNumber(
   orgId: string,
   number: SyncableNumber,
   clientToken: string,
-): Promise<{ statusChanged: boolean }> {
+): Promise<{ statusChanged: boolean; instanceStatus: ZapiInstanceStatus }> {
   const instanceStatus = await fetchZapiInstanceStatus(
     number.externalId!,
     number.providerToken!,
@@ -47,7 +50,7 @@ async function syncOneNumber(
   });
 
   const status: HealthStatus = instanceStatus.connected ? "GREEN" : "RED";
-  if (status === number.currentStatus) return { statusChanged: false };
+  if (status === number.currentStatus) return { statusChanged: false, instanceStatus };
 
   await recordHealthCheck({
     orgId,
@@ -58,7 +61,7 @@ async function syncOneNumber(
       status === "RED" ? instanceStatus.error ?? "Instância desconectada no Z-API" : undefined,
   });
 
-  return { statusChanged: true };
+  return { statusChanged: true, instanceStatus };
 }
 
 /**
@@ -143,12 +146,21 @@ export async function syncZapiForNumber(
   }
 
   try {
-    const { statusChanged } = await syncOneNumber(orgId, number, config.clientToken);
+    const { statusChanged, instanceStatus } = await syncOneNumber(
+      orgId,
+      number,
+      config.clientToken,
+    );
     await prisma.providerCredential.update({
       where: { orgId_platform: { orgId, platform: "ZAPI" } },
       data: { lastSyncAt: new Date() },
     });
-    return { ok: true, statusChanged };
+    return {
+      ok: true,
+      statusChanged,
+      connected: instanceStatus.connected,
+      smartphoneConnected: instanceStatus.smartphoneConnected,
+    };
   } catch (err) {
     return { ok: false, statusChanged: false, error: err instanceof Error ? err.message : String(err) };
   }
