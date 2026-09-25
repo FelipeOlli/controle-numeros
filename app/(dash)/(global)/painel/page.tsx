@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getOrgHealth } from "@/lib/org-health";
 import { AttentionQueue, type AttentionItem } from "@/components/attention-queue";
+import { StatusDot } from "@/components/status-pill";
 import { OrgHealthRadar, OrgHealthList } from "@/components/org-health-radar";
 import type { HealthStatus } from "@/generated/prisma/enums";
 
@@ -41,6 +42,9 @@ export default async function PainelPage() {
 
   const nonGreen = numbers.filter((n) => n.currentStatus !== "GREEN");
   const healthyNumbers = numbers.filter((n) => n.currentStatus === "GREEN");
+  const activeNumbers = [...numbers]
+    .filter((n) => n.active)
+    .sort((a, b) => SEVERITY[a.currentStatus] - SEVERITY[b.currentStatus]);
 
   const recentChecks = nonGreen.length
     ? await prisma.healthCheck.findMany({
@@ -150,21 +154,21 @@ export default async function PainelPage() {
     </div>
   );
 
-  const healthyCard = (
+  const activeNumbersCard = (
     <div className="flex flex-col gap-[14px] rounded-[22px] bg-surface p-[22px_24px]">
       <div className="flex flex-wrap items-center gap-2.5">
-        <span className="type-card-title-sm">Saudáveis</span>
+        <span className="type-card-title-sm">Números ativos</span>
         <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[13px] font-semibold text-accent-deep">
-          {healthyNumbers.length} número{healthyNumbers.length === 1 ? "" : "s"}
+          {activeNumbers.length} número{activeNumbers.length === 1 ? "" : "s"}
         </span>
       </div>
-      {healthyNumbers.length === 0 ? (
-        <p className="type-body-sm text-ink-3">Nenhum número saudável ainda.</p>
+      {activeNumbers.length === 0 ? (
+        <p className="type-body-sm text-ink-3">Nenhum número ativo ainda.</p>
       ) : (
         <div className="grid grid-cols-1 gap-2.5 min-[600px]:grid-cols-2">
-          {healthyNumbers.map((n) => (
+          {activeNumbers.map((n) => (
             <div key={n.id} className="flex items-center gap-2 text-[13px]">
-              <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />
+              <StatusDot status={n.currentStatus} />
               <span className="truncate font-medium">{n.label}</span>
               <span className="ml-auto shrink-0 font-mono text-xs text-ink-3">{n.e164}</span>
             </div>
@@ -276,7 +280,7 @@ export default async function PainelPage() {
       {/* mobile: fila de atenção → KPIs → saúde por empresa → distribuição */}
       <div className="flex flex-col gap-4 min-[900px]:hidden">
         {queueCard}
-        {healthyCard}
+        {activeNumbersCard}
         {kpiAttentionCard}
         {kpiHealthyCard}
         {addNumberButton}
@@ -293,7 +297,7 @@ export default async function PainelPage() {
         </div>
         <div className="flex min-w-0 flex-col gap-4">
           {queueCard}
-          {healthyCard}
+          {activeNumbersCard}
         </div>
         <div className="flex flex-col gap-4">
           {kpiAttentionCard}
