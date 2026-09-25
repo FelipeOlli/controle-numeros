@@ -67,6 +67,17 @@ enum CheckSource {
   API
 }
 
+/// Classificação de qualidade da Graph API da Meta (quality_rating) — conceito
+/// separado do HealthStatus: um número pode estar CONNECTED (status
+/// operacional) com qualidade RED (risco de restrição). UNKNOWN é o padrão
+/// pra número recém-vinculado, antes da primeira sincronização.
+enum MetaQualityRating {
+  GREEN
+  YELLOW
+  RED
+  UNKNOWN
+}
+
 enum AlertChannelKind {
   WHATSAPP
   EMAIL
@@ -141,9 +152,25 @@ model PhoneNumber {
   externalId    String?
   /// Token/segredo da instância no provedor (ex: TOKEN da instância Z-API,
   /// usado junto com externalId na URL da API). Não é a credencial da conta
-  /// (essa fica em ProviderCredential) — é por número.
+  /// (essa fica em ProviderCredential) — é por número. Pra Meta Cloud API,
+  /// externalId guarda o phone_number_id da Graph API e providerToken fica
+  /// vazio — a autenticação é só a nível de WABA (ver ProviderCredential).
   providerToken String?
+  /// messaging_limit_tier da Meta (ex: TIER_1K) — quantas conversas
+  /// business-initiated o número pode abrir por dia. Só preenchido pra
+  /// números com vínculo META_CLOUD.
   tier          String?
+  /// quality_rating da Graph API — separado de currentStatus porque um
+  /// número pode estar conectado (status operacional) com qualidade em
+  /// queda (risco de ser restrito). Só relevante pra vínculo META_CLOUD.
+  qualityRating MetaQualityRating?
+  /// Gasto do mês corrente por número, via pricing_analytics da Graph API —
+  /// null se a conta usa linha de crédito de Solution Partner/BSP (aí a API
+  /// só devolve volume, sem custo). spendMonth ("2026-09") evita misturar
+  /// valor de um mês com o próximo antes da sincronização seguinte.
+  monthlySpend  Decimal? @db.Decimal(10, 2)
+  spendCurrency String?
+  spendMonth    String?
   currentStatus HealthStatus @default(UNKNOWN)
   currentScore  Int          @default(0)
   lastCheckAt   DateTime?
@@ -152,10 +179,11 @@ model PhoneNumber {
   /// (cache, não histórico). Nulo pra provedores/números sem esse dado.
   providerDueAt         DateTime?
   providerPaymentStatus String?
-  /// Quando esse número foi verificado no provedor (Z-API) pela última vez,
-  /// mesmo sem mudança de status — diferente de lastCheckAt, que só muda
-  /// quando o status muda de fato. Usado pra não marcar como "sem dados" um
-  /// número estável que continua sendo sincronizado normalmente.
+  /// Quando esse número foi verificado no provedor (Z-API ou Meta Cloud API)
+  /// pela última vez, mesmo sem mudança de status — diferente de
+  /// lastCheckAt, que só muda quando o status muda de fato. Usado pra não
+  /// marcar como "sem dados" um número estável que continua sendo
+  /// sincronizado normalmente.
   lastSyncAt DateTime?
   /// Recarga de crédito do chip físico — sem crédito a cada ~3 meses, a
   /// operadora recolhe o número. Só relevante pra origem CHIP_FISICO e

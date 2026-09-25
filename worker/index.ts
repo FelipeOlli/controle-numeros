@@ -6,6 +6,7 @@ import { isStale } from "../lib/health";
 import { dueDateStatus } from "../lib/format";
 import { dispatchStatusChange, dispatchRechargeReminder } from "../lib/alerts/dispatch";
 import { syncAllZapiCredentials } from "../lib/providers/zapi-sync";
+import { syncAllMetaCredentials, syncAllMetaSpend } from "../lib/providers/meta-sync";
 
 const RECHARGE_REMINDER_DAYS = 7;
 
@@ -18,11 +19,12 @@ const prisma = new PrismaClient({ adapter });
  * desta função e gravam HealthCheck com source "API", então a maioria dos
  * números nunca chega a ficar "stale".
  *
- * Número Z-API estável não muda de status, então lastCheckAt nunca atualiza
- * mesmo sincronizando a cada 10min (lib/providers/zapi-sync.ts só grava
- * HealthCheck quando o status muda de fato). Por isso, pra Z-API, usa o mais
- * recente entre lastCheckAt e lastSyncAt — sem isso o worker marcaria como
- * "sem dados" um número que o Z-API acabou de confirmar conectado.
+ * Número Z-API ou Meta Cloud API estável não muda de status, então
+ * lastCheckAt nunca atualiza mesmo sincronizando periodicamente
+ * (lib/providers/zapi-sync.ts e meta-sync.ts só gravam HealthCheck quando o
+ * status muda de fato). Por isso, pra esses dois, usa o mais recente entre
+ * lastCheckAt e lastSyncAt — sem isso o worker marcaria como "sem dados" um
+ * número que acabou de ser confirmado conectado.
  */
 async function markStaleNumbers() {
   const candidates = await prisma.phoneNumber.findMany({
@@ -30,8 +32,9 @@ async function markStaleNumbers() {
   });
 
   const stale = candidates.filter((n) => {
+    const syncsIndependentOfStatus = n.platforms.includes("ZAPI") || n.platforms.includes("META_CLOUD");
     const effectiveLastCheck =
-      n.platforms.includes("ZAPI") && n.lastSyncAt && (!n.lastCheckAt || n.lastSyncAt > n.lastCheckAt)
+      syncsIndependentOfStatus && n.lastSyncAt && (!n.lastCheckAt || n.lastSyncAt > n.lastCheckAt)
         ? n.lastSyncAt
         : n.lastCheckAt;
     return isStale(effectiveLastCheck);
@@ -133,13 +136,23 @@ cron.schedule("*/10 * * * *", () => {
   syncAllZapiCredentials().catch((err) => console.error("[worker] erro no syncAllZapiCredentials", err));
 });
 
-// Todo dia às 7h, gera o resumo e verifica lembretes de recarga.
+// A cada 10 minutos, sincroniza conexão/qualidade/tier dos números Meta Cloud API.
+cron.schedule("*/10 * * * *", () => {
+  syncAllMetaCredentials().catch((err) => console.error("[worker] erro no syncAllMetaCredentials", err));
+});
+
+// Todo dia às 7h, gera o resumo, verifica lembretes de recarga e sincroniza
+// o gasto do mês nos números Meta Cloud API — dado financeiro não precisa de
+// granularidade de minutos, e evita estourar rate limit do endpoint de
+// analytics da Graph API.
 cron.schedule("0 7 * * *", () => {
   sendDailyDigest().catch((err) => console.error("[worker] erro no sendDailyDigest", err));
   checkRechargeReminders().catch((err) => console.error("[worker] erro no checkRechargeReminders", err));
+  syncAllMetaSpend().catch((err) => console.error("[worker] erro no syncAllMetaSpend", err));
 });
 
 // Roda uma vez já na subida, para não esperar o próximo agendamento.
 markStaleNumbers().catch((err) => console.error("[worker] erro no markStaleNumbers", err));
 syncAllZapiCredentials().catch((err) => console.error("[worker] erro no syncAllZapiCredentials", err));
+syncAllMetaCredentials().catch((err) => console.error("[worker] erro no syncAllMetaCredentials", err));
 checkRechargeReminders().catch((err) => console.error("[worker] erro no checkRechargeReminders", err));

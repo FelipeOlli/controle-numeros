@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireOrg, requireRole, TenantError } from "@/lib/tenant";
 import { syncZapiForOrg, type ZapiSyncResult } from "@/lib/providers/zapi-sync";
+import { syncMetaForOrg, type MetaSyncResult } from "@/lib/providers/meta-sync";
 import {
   ORIGIN_LABELS,
   PLATFORM_LABELS,
@@ -119,6 +120,49 @@ export async function syncZapiNow(orgSlug: string): Promise<ZapiSyncResult> {
   requireRole(role, ["OWNER", "ADMIN"]);
 
   const result = await syncZapiForOrg(org.id);
+
+  revalidatePath(`/${orgSlug}/numeros`);
+  revalidatePath("/[org]/numeros/[id]", "page");
+  revalidatePath("/painel");
+
+  return result;
+}
+
+const metaCredentialSchema = z.object({
+  wabaId: z.string().min(1),
+  accessToken: z.string().min(1),
+});
+
+/**
+ * Guarda o WABA ID e o system user access token (Business Settings →
+ * Usuários do sistema → gerar token com whatsapp_business_management) —
+ * vale pra todos os números vinculados a META_CLOUD nessa empresa. O token
+ * nunca é reexibido; o WABA ID não é segredo, por isso pode ser mostrado.
+ */
+export async function saveMetaCredential(orgSlug: string, formData: FormData) {
+  const { org, role } = await requireOrg(orgSlug);
+  requireRole(role, ["OWNER", "ADMIN"]);
+
+  const { wabaId, accessToken } = metaCredentialSchema.parse({
+    wabaId: formData.get("wabaId"),
+    accessToken: formData.get("accessToken"),
+  });
+
+  await prisma.providerCredential.upsert({
+    where: { orgId_platform: { orgId: org.id, platform: "META_CLOUD" } },
+    create: { orgId: org.id, platform: "META_CLOUD", config: { wabaId, accessToken } },
+    update: { config: { wabaId, accessToken } },
+  });
+
+  revalidatePath(`/${orgSlug}/numeros`);
+}
+
+/** Botão "Sincronizar agora" — mesma sincronização do worker, sob demanda. */
+export async function syncMetaNow(orgSlug: string): Promise<MetaSyncResult> {
+  const { org, role } = await requireOrg(orgSlug);
+  requireRole(role, ["OWNER", "ADMIN"]);
+
+  const result = await syncMetaForOrg(org.id);
 
   revalidatePath(`/${orgSlug}/numeros`);
   revalidatePath("/[org]/numeros/[id]", "page");

@@ -13,9 +13,10 @@ import {
   PLATFORM_LABELS,
   CHIP_PLAN_LABELS,
   CARRIER_LABELS,
+  QUALITY_LABELS,
   tracksRecharge,
 } from "@/lib/providers";
-import { dueDateStatus, formatDateTime } from "@/lib/format";
+import { dueDateStatus, formatDateTime, formatCurrency } from "@/lib/format";
 import { createCheck } from "./actions";
 import type { ChipPlan } from "@/generated/prisma/enums";
 import { HealthChart } from "./health-chart";
@@ -23,7 +24,9 @@ import { DeleteNumberButton } from "./delete-number-button";
 import { EditNumberDialog } from "./edit-number-dialog";
 import { ZapiBillingForm } from "./zapi-billing-form";
 import { ZapiSyncButton } from "./zapi-sync-button";
+import { MetaSyncButton } from "./meta-sync-button";
 import { RechargeForm } from "./recharge-form";
+import { BadgeDollarSign } from "lucide-react";
 
 const selectClass =
   "w-full rounded-[14px] border border-line bg-canvas px-[14px] py-3 text-[15px] text-ink outline-none focus:border-accent focus:bg-surface";
@@ -97,6 +100,7 @@ export default async function NumberDetailPage({
     .map((c) => ({ date: c.createdAt.toISOString(), score: c.score, status: c.status }));
 
   const isZapi = number.platforms.includes("ZAPI");
+  const isMetaCloud = number.platforms.includes("META_CLOUD");
 
   const isChipFisico = number.origin === "CHIP_FISICO";
 
@@ -107,6 +111,24 @@ export default async function NumberDetailPage({
       <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${colorClass}`}>
         {label}
         {number.providerPaymentStatus ? ` · ${number.providerPaymentStatus}` : ""}
+      </span>
+    );
+  }
+
+  let qualityPill: ReactNode = null;
+  if (isMetaCloud && number.qualityRating) {
+    const qualityColorClass =
+      number.qualityRating === "GREEN"
+        ? "bg-accent-soft text-accent-deep"
+        : number.qualityRating === "YELLOW"
+          ? "bg-warn-soft text-warn-deep"
+          : number.qualityRating === "RED"
+            ? "bg-danger-soft text-danger-deep"
+            : "bg-row text-ink-2";
+    qualityPill = (
+      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${qualityColorClass}`}>
+        {QUALITY_LABELS[number.qualityRating]}
+        {number.tier ? ` · ${number.tier}` : ""}
       </span>
     );
   }
@@ -151,6 +173,7 @@ export default async function NumberDetailPage({
           <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">{org.name}</span>
           {billingPill}
           {rechargePill}
+          {qualityPill}
         </div>
       </div>
       <div className="flex flex-col items-start gap-1.5 min-[600px]:items-end">
@@ -165,6 +188,13 @@ export default async function NumberDetailPage({
           </span>
         )}
         {isZapi && canManage && <ZapiSyncButton orgSlug={orgSlug} numberId={id} />}
+        {isMetaCloud && (
+          <span className="type-meta text-ink-3">
+            Meta sincronizado{" "}
+            {number.lastSyncAt ? formatDateTime(number.lastSyncAt) : "nunca"}
+          </span>
+        )}
+        {isMetaCloud && canManage && <MetaSyncButton orgSlug={orgSlug} numberId={id} />}
       </div>
     </div>
   );
@@ -322,6 +352,32 @@ export default async function NumberDetailPage({
     />
   );
 
+  const spendCard = isMetaCloud && canManage && (
+    <div className="flex flex-col gap-2 rounded-[22px] bg-surface p-[22px_24px]">
+      <span className="flex items-center gap-2 type-card-title-sm">
+        <BadgeDollarSign size={16} className="text-accent" />
+        Gasto (Meta Cloud API)
+      </span>
+      {number.monthlySpend != null ? (
+        <>
+          <span className="type-kpi-md">
+            {formatCurrency(Number(number.monthlySpend), number.spendCurrency)}
+          </span>
+          <span className="type-meta text-ink-3">
+            {number.spendMonth ? `Referente a ${number.spendMonth}` : "Mês não identificado"} ·
+            {" "}
+            {number.lastSyncAt ? `sincronizado ${formatDateTime(number.lastSyncAt)}` : "nunca sincronizado"}
+          </span>
+        </>
+      ) : (
+        <p className="type-body-sm text-ink-3">
+          Sem dado de gasto ainda — sincronizado uma vez por dia pelo worker (diferente do
+          botão &quot;Sincronizar&quot; acima, que só atualiza conexão/qualidade).
+        </p>
+      )}
+    </div>
+  );
+
   const rechargeCard = isChipFisico && canManage && (
     <RechargeForm
       orgSlug={orgSlug}
@@ -366,6 +422,7 @@ export default async function NumberDetailPage({
         {identityCard}
         {registerCheckCard}
         {billingCard}
+        {spendCard}
         {rechargeCard}
         {scoreHistoryCard}
         {incidentsCard}
@@ -381,6 +438,7 @@ export default async function NumberDetailPage({
         <div className="flex flex-col gap-4">
           {registerCheckCard}
           {billingCard}
+          {spendCard}
           {rechargeCard}
           {incidentsCard}
         </div>

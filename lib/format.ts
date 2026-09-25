@@ -26,6 +26,20 @@ export function timeAgo(date: Date, now: Date = new Date()): string {
 }
 
 /**
+ * Valor monetário na moeda informada — gasto Meta Cloud API vem por número,
+ * na moeda da própria conta (nem sempre BRL). Cai pra formatação simples se
+ * a moeda vier vazia (Solution Partner/BSP às vezes não devolve).
+ */
+export function formatCurrency(value: number, currency: string | null): string {
+  if (!currency) return value.toFixed(2);
+  try {
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format(value);
+  } catch {
+    return `${currency} ${value.toFixed(2)}`;
+  }
+}
+
+/**
  * Pílula de "vencimento" — usada pro vencimento Z-API e pra recarga de chip
  * físico. Mesmas faixas de cor do resto do app: ≤3 dias crítico, ≤10 dias
  * atenção, senão estável.

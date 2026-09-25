@@ -8,6 +8,7 @@ import { requireOrg, requireRole, TenantError } from "@/lib/tenant";
 import { recordHealthCheck } from "@/lib/checks";
 import { SELECTABLE_STATUSES } from "@/lib/health";
 import { syncZapiForNumber, type ZapiNumberSyncResult } from "@/lib/providers/zapi-sync";
+import { syncMetaForNumber, type MetaNumberSyncResult } from "@/lib/providers/meta-sync";
 import {
   ORIGIN_LABELS,
   PLATFORM_LABELS,
@@ -282,6 +283,27 @@ export async function syncZapiNumberNow(
   }
 
   const result = await syncZapiForNumber(org.id, numberId);
+
+  revalidatePath(`/${orgSlug}/numeros/${numberId}`);
+  revalidatePath(`/${orgSlug}/numeros`);
+
+  return result;
+}
+
+/** Botão "Sincronizar" — status/qualidade Meta Cloud API, só pra esse número. */
+export async function syncMetaNumberNow(
+  orgSlug: string,
+  numberId: string,
+): Promise<MetaNumberSyncResult> {
+  const { org, role } = await requireOrg(orgSlug);
+  requireRole(role, ["OWNER", "ADMIN"]);
+
+  const number = await prisma.phoneNumber.findUnique({ where: { id: numberId } });
+  if (!number || number.orgId !== org.id) {
+    throw new TenantError("Número não encontrado", 404);
+  }
+
+  const result = await syncMetaForNumber(org.id, numberId);
 
   revalidatePath(`/${orgSlug}/numeros/${numberId}`);
   revalidatePath(`/${orgSlug}/numeros`);

@@ -9,11 +9,13 @@ import {
   PLATFORM_LABELS,
   CHIP_PLAN_LABELS,
   CARRIER_LABELS,
+  QUALITY_LABELS,
   tracksRecharge,
 } from "@/lib/providers";
 import { dueDateStatus, timeAgo } from "@/lib/format";
 import { AddNumberDialog } from "./add-number-dialog";
 import { ZapiCredentialForm } from "./zapi-credential-form";
+import { MetaCredentialForm } from "./meta-credential-form";
 import type { HealthStatus } from "@/generated/prisma/enums";
 
 const SEVERITY: Record<HealthStatus, number> = {
@@ -52,11 +54,17 @@ export default async function NumerosPage({
 
   const canManage = role === "OWNER" || role === "ADMIN";
 
-  const zapiCredential = canManage
-    ? await prisma.providerCredential.findUnique({
-        where: { orgId_platform: { orgId: org.id, platform: "ZAPI" } },
-      })
-    : null;
+  const [zapiCredential, metaCredential] = canManage
+    ? await Promise.all([
+        prisma.providerCredential.findUnique({
+          where: { orgId_platform: { orgId: org.id, platform: "ZAPI" } },
+        }),
+        prisma.providerCredential.findUnique({
+          where: { orgId_platform: { orgId: org.id, platform: "META_CLOUD" } },
+        }),
+      ])
+    : [null, null];
+  const metaWabaId = (metaCredential?.config as { wabaId?: string } | undefined)?.wabaId ?? null;
 
   return (
     <div className="flex flex-col gap-5 py-1">
@@ -91,6 +99,15 @@ export default async function NumerosPage({
           orgSlug={orgSlug}
           configured={Boolean(zapiCredential)}
           lastSyncAt={zapiCredential?.lastSyncAt ?? null}
+        />
+      )}
+
+      {canManage && (
+        <MetaCredentialForm
+          orgSlug={orgSlug}
+          configured={Boolean(metaCredential)}
+          wabaId={metaWabaId}
+          lastSyncAt={metaCredential?.lastSyncAt ?? null}
         />
       )}
 
@@ -146,6 +163,11 @@ export default async function NumerosPage({
                 {n.platforms.includes("ZAPI") && (
                   <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
                     {n.lastSyncAt ? `Sincronizado ${timeAgo(n.lastSyncAt)}` : "Nunca sincronizado"}
+                  </span>
+                )}
+                {n.platforms.includes("META_CLOUD") && n.qualityRating && (
+                  <span className="rounded-full bg-row px-2.5 py-1 text-xs text-ink-2">
+                    {QUALITY_LABELS[n.qualityRating]}
                   </span>
                 )}
               </div>

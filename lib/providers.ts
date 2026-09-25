@@ -1,4 +1,10 @@
-import type { NumberOrigin, NumberPlatform, Carrier, ChipPlan } from "@/generated/prisma/enums";
+import type {
+  NumberOrigin,
+  NumberPlatform,
+  Carrier,
+  ChipPlan,
+  MetaQualityRating,
+} from "@/generated/prisma/enums";
 
 /** Como o número foi adquirido. */
 export const ORIGIN_LABELS: Record<NumberOrigin, string> = {
@@ -26,6 +32,14 @@ export const CARRIER_LABELS: Record<Carrier, string> = {
   OI: "Oi",
   OUTRA: "Outra",
   DESCONHECIDA: "Não sei",
+};
+
+/** quality_rating da Graph API — só relevante pra vínculo META_CLOUD. */
+export const QUALITY_LABELS: Record<MetaQualityRating, string> = {
+  GREEN: "Qualidade alta",
+  YELLOW: "Qualidade média",
+  RED: "Qualidade baixa",
+  UNKNOWN: "Qualidade desconhecida",
 };
 
 /** Plano do chip físico — pré-pago recarrega, conta/plano é faturado. */
