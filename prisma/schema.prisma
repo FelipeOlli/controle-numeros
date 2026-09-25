@@ -24,12 +24,15 @@ enum NumberOrigin {
 
 /// Em quais plataformas o número está vinculado pra operar. Um número pode
 /// ter mais de uma (ex: chip no WhatsApp Business *e* vinculado ao Z-API).
+/// ONETY é sistema interno, não provedor: marca que o número é usado no CF
+/// Onety, sem integração nem sincronização.
 enum NumberPlatform {
   WHATSAPP_NORMAL
   WHATSAPP_BUSINESS
   ZAPI
   EVOLUTION
   META_CLOUD
+  ONETY
 }
 
 /// Operadora do chip físico — só relevante pra origem CHIP_FISICO.

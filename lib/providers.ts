@@ -15,6 +15,7 @@ export const PLATFORM_LABELS: Record<NumberPlatform, string> = {
   ZAPI: "Z-API",
   EVOLUTION: "Evolution API",
   META_CLOUD: "Meta Cloud API",
+  ONETY: "CF Onety",
 };
 
 /** Operadora do chip físico. */
