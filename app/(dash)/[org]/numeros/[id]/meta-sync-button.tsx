@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QUALITY_LABELS } from "@/lib/providers";
+import { STATUS_LABELS } from "@/lib/health";
 import { syncMetaNumberNow } from "./actions";
 import type { MetaNumberSyncResult } from "@/lib/providers/meta-sync";
 
@@ -11,7 +12,7 @@ import type { MetaNumberSyncResult } from "@/lib/providers/meta-sync";
 function describeStatus(result: MetaNumberSyncResult): string {
   if (result.error) return result.error;
   const quality = result.qualityRating ? QUALITY_LABELS[result.qualityRating] : null;
-  const status = result.status ?? "Sincronizado";
+  const status = result.health ? STATUS_LABELS[result.health] : (result.status ?? "Sincronizado");
   return quality ? `${status} · ${quality}` : status;
 }
 

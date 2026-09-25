@@ -2,8 +2,11 @@ const GRAPH_API_BASE_URL = "https://graph.facebook.com/v21.0";
 
 export interface MetaPhoneNumberStatus {
   phoneNumberId: string;
-  status: string;
-  qualityRating: string;
+  /** Pode vir ausente — nem toda WABA/número devolve "status" no edge. */
+  status: string | undefined;
+  /** health_status.can_send_message: AVAILABLE | LIMITED | BLOCKED. */
+  canSendMessage: string | undefined;
+  qualityRating: string | undefined;
   messagingTier: string | null;
 }
 
@@ -20,7 +23,8 @@ export async function fetchMetaPhoneNumbers(
   // Sem "fields" explícito, o edge /phone_numbers só devolve o conjunto
   // padrão da Graph API (id, nome, telefone) — status e messaging_limit_tier
   // ficam de fora e chegam undefined.
-  const fields = "id,display_phone_number,status,quality_rating,messaging_limit_tier";
+  const fields =
+    "id,display_phone_number,status,health_status,quality_rating,messaging_limit_tier";
   const res = await fetch(`${GRAPH_API_BASE_URL}/${wabaId}/phone_numbers?fields=${fields}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -32,8 +36,9 @@ export async function fetchMetaPhoneNumbers(
   const data = (await res.json()) as {
     data: {
       id: string;
-      status: string;
-      quality_rating: string;
+      status?: string;
+      health_status?: { can_send_message?: string };
+      quality_rating?: string;
       messaging_limit_tier?: string;
     }[];
   };
@@ -41,6 +46,7 @@ export async function fetchMetaPhoneNumbers(
   return data.data.map((n) => ({
     phoneNumberId: n.id,
     status: n.status,
+    canSendMessage: n.health_status?.can_send_message,
     qualityRating: n.quality_rating,
     messagingTier: n.messaging_limit_tier ?? null,
   }));
